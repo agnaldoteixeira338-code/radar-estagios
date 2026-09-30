@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+__pycache__/
+.venv/
+
+# Build
+dist/
+coverage/
+
+# Segredos (nunca vão para o GitHub)
+.env
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
