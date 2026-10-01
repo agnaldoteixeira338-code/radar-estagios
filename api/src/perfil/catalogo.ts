@@ -4,6 +4,8 @@
 // peso: pontos que a vaga soma quando pede uma tecnologia que a pessoa TEM.
 // Quando a vaga exige uma tecnologia que a pessoa NÃO tem, ela tira pontos.
 
+import { comLimitesDePalavra } from '../compatibilidade/regex';
+
 export const CATEGORIAS = ['Linguagens', 'Front-end', 'Back-end', 'Dados', 'Mobile', 'Infra e ferramentas', 'Conceitos'] as const;
 export type Categoria = (typeof CATEGORIAS)[number];
 
@@ -13,13 +15,17 @@ export interface Tecnologia {
   categoria: Categoria;
   padrao: RegExp;
   peso: number;
+  // false: só soma pontos quando a pessoa tem; não tira pontos quando falta.
+  // Usado em itens que descrevem a área da vaga, e não um requisito técnico.
+  penalizaAusencia?: boolean;
 }
 
-// Observação: o \b do JavaScript só reconhece letras sem acento como "parte da palavra";
-// por isso os padrões com acento evitam \b colado a letras acentuadas.
-export const CATALOGO: Tecnologia[] = [
+// Os padrões são escritos com "\b" por legibilidade; no fim do arquivo cada "\b" é trocado
+// por um limite de palavra que entende acentos (ver compatibilidade/regex.ts).
+const TECNOLOGIAS: Tecnologia[] = [
   // Linguagens
-  { id: 'javascript', nome: 'JavaScript', categoria: 'Linguagens', padrao: /\bjavascript\b|\bjs\b/i, peso: 8 },
+  // "(?<!\.)js": o "js" de "Node.js", "React.js" etc. não conta como pedir JavaScript.
+  { id: 'javascript', nome: 'JavaScript', categoria: 'Linguagens', padrao: /\bjavascript\b|(?<!\.)\bjs\b/i, peso: 8 },
   { id: 'typescript', nome: 'TypeScript', categoria: 'Linguagens', padrao: /\btypescript\b/i, peso: 7 },
   { id: 'python', nome: 'Python', categoria: 'Linguagens', padrao: /\bpython\b/i, peso: 8 },
   { id: 'java', nome: 'Java', categoria: 'Linguagens', padrao: /\bjava\b(?!\s*script)/i, peso: 8 },
@@ -39,7 +45,7 @@ export const CATALOGO: Tecnologia[] = [
   { id: 'nodejs', nome: 'Node.js', categoria: 'Back-end', padrao: /\bnode(\.?js)?\b/i, peso: 10 },
   { id: 'express', nome: 'Express', categoria: 'Back-end', padrao: /\bexpress(\.?js)?\b/i, peso: 4 },
   { id: 'apis-rest', nome: 'APIs REST', categoria: 'Back-end', padrao: /\bapis?\b|\brest(ful)?\b/i, peso: 8 },
-  { id: 'autenticacao', nome: 'JWT/Autenticação', categoria: 'Back-end', padrao: /\bjwt\b|autentica[cç][aã]o/i, peso: 3 },
+  { id: 'autenticacao', nome: 'JWT/Autenticação', categoria: 'Back-end', padrao: /\bjwt\b|autentica[cç][aã]o/i, peso: 3, penalizaAusencia: false },
 
   // Dados
   { id: 'sql', nome: 'SQL', categoria: 'Dados', padrao: /\bsql\b/i, peso: 8 },
@@ -70,11 +76,13 @@ export const CATALOGO: Tecnologia[] = [
   { id: 'testes', nome: 'Testes automatizados', categoria: 'Infra e ferramentas', padrao: /testes? (automatizad|unit[aá]ri)|\bjest\b|\bpytest\b|\bcypress\b/i, peso: 4 },
 
   // Conceitos
-  { id: 'full-stack', nome: 'Full Stack', categoria: 'Conceitos', padrao: /\bfull[\s-]?stack\b/i, peso: 8 },
-  { id: 'front-end', nome: 'Front-end', categoria: 'Conceitos', padrao: /\bfront[\s-]?end\b/i, peso: 5 },
-  { id: 'back-end', nome: 'Back-end', categoria: 'Conceitos', padrao: /\bback[\s-]?end\b/i, peso: 5 },
-  { id: 'logica', nome: 'Lógica de programação', categoria: 'Conceitos', padrao: /l[oó]gica de programa[cç][aã]o/i, peso: 3 },
+  { id: 'full-stack', nome: 'Full Stack', categoria: 'Conceitos', padrao: /\bfull[\s-]?stack\b/i, peso: 8, penalizaAusencia: false },
+  { id: 'front-end', nome: 'Front-end', categoria: 'Conceitos', padrao: /\bfront[\s-]?end\b/i, peso: 5, penalizaAusencia: false },
+  { id: 'back-end', nome: 'Back-end', categoria: 'Conceitos', padrao: /\bback[\s-]?end\b/i, peso: 5, penalizaAusencia: false },
+  { id: 'logica', nome: 'Lógica de programação', categoria: 'Conceitos', padrao: /l[oó]gica de programa[cç][aã]o/i, peso: 3, penalizaAusencia: false },
 ];
+
+export const CATALOGO: Tecnologia[] = TECNOLOGIAS.map((t) => ({ ...t, padrao: comLimitesDePalavra(t.padrao) }));
 
 export const IDS_CATALOGO = new Set(CATALOGO.map((t) => t.id));
 

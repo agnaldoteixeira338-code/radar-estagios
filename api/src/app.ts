@@ -13,6 +13,7 @@ export interface Dependencias {
   perfisRepositorio: PerfisRepositorio;
   segredoJwt: string;
   limiteTentativasLogin?: number;
+  custoBcrypt?: number; // só os testes trocam; produção usa o padrão (12)
 }
 
 // O app fica separado do servidor (server.ts) para que os testes
@@ -29,11 +30,12 @@ export function criarApp(dependencias: Dependencias) {
     criarAuthRouter(dependencias.usuariosRepositorio, {
       segredoJwt: dependencias.segredoJwt,
       limiteTentativas: dependencias.limiteTentativasLogin,
+      custoBcrypt: dependencias.custoBcrypt,
     }),
   );
   app.use('/catalogo', criarCatalogoRouter());
   app.use('/perfil', criarPerfilRouter(dependencias.perfisRepositorio, dependencias.segredoJwt));
-  app.use('/vagas', criarVagasRouter(dependencias.vagasRepositorio));
+  app.use('/vagas', criarVagasRouter(dependencias.vagasRepositorio, dependencias.perfisRepositorio, dependencias.segredoJwt));
 
   // Tratador de erros: registra o erro completo no terminal (para quem desenvolve)
   // e devolve ao cliente só uma mensagem genérica, sem expor detalhes internos.

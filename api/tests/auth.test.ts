@@ -20,8 +20,17 @@ describe('POST /auth/cadastro', () => {
     expect(typeof resposta.body.token).toBe('string');
     expect(JSON.stringify(resposta.body)).not.toMatch(/senha|hash/i);
     // A senha é guardada só como hash bcrypt.
-    expect(usuarios.usuarios[0].senhaHash).toMatch(/^\$2[aby]\$12\$/);
+    expect(usuarios.usuarios[0].senhaHash).toMatch(/^\$2[aby]\$\d\d\$/);
     expect(usuarios.usuarios[0].senhaHash).not.toContain(CADASTRO.senha);
+  });
+
+  it('em produção (sem trocar o custo) usa bcrypt com custo 12', async () => {
+    const usuarios = criarUsuariosFalso();
+    const app = criarAppTeste({ usuariosRepositorio: usuarios.repositorio, custoBcrypt: undefined });
+
+    await request(app).post('/auth/cadastro').send(CADASTRO);
+
+    expect(usuarios.usuarios[0].senhaHash).toMatch(/^\$2[aby]\$12\$/);
   });
 
   it('guarda o e-mail em minúsculas e sem espaços', async () => {

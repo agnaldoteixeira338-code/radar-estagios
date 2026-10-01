@@ -9,6 +9,8 @@ export interface OpcoesAuth {
   segredoJwt: string;
   // Máximo de tentativas de login/cadastro por IP a cada 15 minutos.
   limiteTentativas?: number;
+  // Custo do bcrypt; só os testes usam um valor menor (padrão: CUSTO_BCRYPT = 12).
+  custoBcrypt?: number;
 }
 
 export function criarAuthRouter(usuarios: UsuariosRepositorio, opcoes: OpcoesAuth) {
@@ -32,7 +34,7 @@ export function criarAuthRouter(usuarios: UsuariosRepositorio, opcoes: OpcoesAut
     }
     const { nome, email, senha } = validacao.dados;
 
-    const usuario = await usuarios.criar({ nome, email, senhaHash: await gerarHashSenha(senha) });
+    const usuario = await usuarios.criar({ nome, email, senhaHash: await gerarHashSenha(senha, opcoes.custoBcrypt) });
     if (!usuario) {
       res.status(409).json({ erro: 'Já existe uma conta com este e-mail' });
       return;

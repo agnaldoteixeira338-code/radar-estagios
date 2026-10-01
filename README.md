@@ -1,6 +1,6 @@
 # Radar de Estágios
 
-Sistema que coleta vagas de estágio automaticamente, calcula a compatibilidade de cada vaga com o meu currículo usando IA e envia alertas diários com as melhores oportunidades.
+Sistema que coleta vagas de estágio automaticamente e calcula, para cada pessoa cadastrada, a compatibilidade de cada vaga com o perfil dela (o que sabe, formatura, inglês e modalidade preferida), mostrando o motivo de cada nota.
 
 > 🚧 Em desenvolvimento
 
@@ -44,8 +44,27 @@ npm test        # testes automatizados
 | `GET /catalogo` | Lista pública das tecnologias que podem ser marcadas no perfil (`id`, `nome`, `categoria`) |
 | `GET /perfil` | Perfil de quem está logado (vazio se ainda não preencheu). Exige login |
 | `PUT /perfil` | Salva o perfil. Corpo: `{ "habilidades": ["react", "sql"], "formatura": "2028-01" ou null, "nivelIngles": "basico" \| "intermediario" \| "avancado" \| "fluente", "modalidades": ["presencial", "hibrido", "remoto"] }`. Exige login |
-| `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas, das mais compatíveis para as menos. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100 |
-| `PATCH /vagas/:id/status` | Atualiza o status da candidatura. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`) |
+| `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas com a nota calculada para o perfil de quem está logado, da maior para a menor. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100. Exige login |
+| `PATCH /vagas/:id/status` | Atualiza o status da candidatura de quem está logado. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`). Exige login |
+
+### Nota de compatibilidade (0 a 100)
+
+Calculada na hora, a cada pedido, com o perfil de quem está logado (`api/src/compatibilidade/avaliar.ts`) e o catálogo de tecnologias (`api/src/perfil/catalogo.ts`):
+
+| Regra | Pontos |
+|---|---|
+| Base | 40 |
+| Cada tecnologia do perfil que a vaga pede (peso por tecnologia) | até +50 |
+| Título de desenvolvimento/software/full stack (+10) ou dados (+5) | até +10 |
+| Cada requisito **obrigatório** do catálogo que a pessoa não tem | −8 (até −32) |
+| Exige inglês avançado/fluente e o nível da pessoa é menor | −15 |
+| Modalidade fora das preferidas no perfil | −10 |
+| Exige formatura em data incompatível com a do perfil | nota 0 (eliminada) |
+
+- Requisitos que aparecem como **diferencial/desejável** não tiram pontos: só são listados.
+- Itens que descrevem a área da vaga (Full Stack, Front-end, Back-end, Lógica de programação) somam pontos, mas não tiram quando faltam.
+- Cada vaga traz o motivo da nota: tecnologias encontradas, o que falta, diferenciais e alertas (ex.: "vaga afirmativa").
+- Os padrões de busca entendem acentos: "excelência" não é confundido com Excel, nem "expressão" com Express (o `\b` do JavaScript não reconhece letras acentuadas; ver `api/src/compatibilidade/regex.ts`).
 
 ## Painel
 
@@ -71,23 +90,8 @@ python -m coletor                  # coleta e salva as vagas
 pytest                             # testes automatizados
 ```
 
-### Nota de compatibilidade (0 a 100)
-
-Depois de salvar, o coletor calcula a nota de cada vaga com regras transparentes (`coletor/coletor/compatibilidade.py`), a partir do perfil em `coletor/coletor/perfil.py`:
-
-| Regra | Pontos |
-|---|---|
-| Base | 40 |
-| Cada habilidade do perfil que a vaga pede (peso por habilidade) | até +50 |
-| Título de desenvolvimento/software/full stack (+10) ou dados (+5) | até +10 |
-| Cada requisito **obrigatório** que ainda não tenho | −8 (até −32) |
-| Exige inglês avançado/fluente | −15 |
-| Exige formatura em data incompatível com a minha | nota 0 (eliminada) |
-
-Requisitos que aparecem como **diferencial/desejável** não tiram pontos: só são listados. Cada vaga guarda o motivo da nota (habilidades encontradas, o que falta, alertas como "vaga afirmativa"), devolvido pela API. A função de avaliação é recebida por parâmetro, para poder ser trocada por uma IA no futuro sem mudar o resto.
-
 > O coletor usa o endereço interno que o site portal.gupy.io usa para listar vagas. Não é uma API oficial documentada e pode mudar. As requisições têm pausa entre si para não sobrecarregar o servidor.
 
 ## Tecnologias
 
-Node.js · TypeScript · Express · Jest · Supertest · PostgreSQL (Neon) · Python · pytest · React · n8n
+Node.js · TypeScript · Express · JWT · bcrypt · Jest · Supertest · PostgreSQL (Neon) · Python · pytest · React · Vite · Vitest · Testing Library

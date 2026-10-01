@@ -9,8 +9,7 @@ from pathlib import Path
 import psycopg
 from dotenv import load_dotenv
 
-from .banco import avaliar_vagas, preparar_url, salvar_vagas
-from .compatibilidade import avaliar
+from .banco import preparar_url, salvar_vagas
 from .gupy import buscar_vagas, e_vaga_de_ti, normalizar
 
 TERMOS = [
@@ -61,10 +60,7 @@ def main() -> None:
 
     with psycopg.connect(preparar_url(url)) as conexao:
         inseridas, atualizadas = salvar_vagas(conexao, vagas.values())
-        print(f"Banco: {inseridas} novas, {atualizadas} atualizadas")
-
-        avaliadas = avaliar_vagas(conexao, avaliar)
-        print(f"Compatibilidade: {avaliadas} vagas avaliadas")
+    print(f"Banco: {inseridas} novas, {atualizadas} atualizadas")
 
 
 if __name__ == "__main__":

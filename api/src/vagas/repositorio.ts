@@ -1,52 +1,47 @@
 import type { Pool } from 'pg';
-import type { FiltrosVagas, Status, Vaga, VagasRepositorio } from './tipos';
+import type { Modalidade, Status, VagaDoBanco, VagasRepositorio } from './tipos';
 
-// Colunas devolvidas pela API, já com os nomes no formato do TypeScript (camelCase).
-const COLUNAS = `
-  id,
-  fonte,
-  id_externo              AS "idExterno",
-  titulo,
-  empresa,
-  cidade,
-  estado,
-  modalidade,
-  link,
-  TO_CHAR(publicada_em, 'YYYY-MM-DD') AS "publicadaEm",
-  nota_compatibilidade    AS "notaCompatibilidade",
-  habilidades_encontradas AS "habilidadesEncontradas",
-  requisitos_faltando     AS "requisitosFaltando",
-  diferenciais_faltando   AS "diferenciaisFaltando",
-  alertas,
-  motivo_eliminacao       AS "motivoEliminacao",
-  status`;
+const VIOLACAO_CHAVE_ESTRANGEIRA = '23503'; // código do PostgreSQL: a vaga referenciada não existe
 
-// Única parte do código que escreve SQL para a tabela vagas.
-// Os valores vão como parâmetros ($1, $2) e nunca colados no texto do SQL.
-// Isso impede ataques de "SQL injection".
+// Única parte do código que escreve SQL para vagas e candidaturas.
+// Os valores vão como parâmetros ($1, $2) e nunca colados no texto do SQL (evita SQL injection).
 export function criarVagasRepositorio(pool: Pool): VagasRepositorio {
   return {
-    async listar({ modalidade, limite }: FiltrosVagas): Promise<Vaga[]> {
-      const { rows } = await pool.query<Vaga>(
-        `SELECT ${COLUNAS}
-           FROM vagas
-          WHERE ($1::text IS NULL OR modalidade = $1)
-          ORDER BY nota_compatibilidade DESC NULLS LAST, publicada_em DESC NULLS LAST, id DESC
-          LIMIT $2`,
-        [modalidade ?? null, limite],
+    async listar(usuarioId: number, { modalidade }: { modalidade?: Modalidade }): Promise<VagaDoBanco[]> {
+      const { rows } = await pool.query<VagaDoBanco>(
+        `SELECT v.id,
+                v.fonte,
+                v.id_externo AS "idExterno",
+                v.titulo,
+                v.empresa,
+                v.cidade,
+                v.estado,
+                v.modalidade,
+                v.link,
+                TO_CHAR(v.publicada_em, 'YYYY-MM-DD') AS "publicadaEm",
+                v.descricao,
+                COALESCE(c.status, 'pendente') AS status
+           FROM vagas v
+           LEFT JOIN candidaturas c ON c.vaga_id = v.id AND c.usuario_id = $1
+          WHERE ($2::text IS NULL OR v.modalidade = $2)`,
+        [usuarioId, modalidade ?? null],
       );
       return rows;
     },
 
-    async atualizarStatus(id: number, status: Status): Promise<Vaga | null> {
-      const { rows } = await pool.query<Vaga>(
-        `UPDATE vagas
-            SET status = $2, status_atualizado_em = NOW()
-          WHERE id = $1
-      RETURNING ${COLUNAS}`,
-        [id, status],
-      );
-      return rows[0] ?? null;
+    async salvarStatus(usuarioId: number, vagaId: number, status: Status): Promise<boolean> {
+      try {
+        await pool.query(
+          `INSERT INTO candidaturas (usuario_id, vaga_id, status)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (usuario_id, vaga_id) DO UPDATE SET status = EXCLUDED.status, atualizado_em = NOW()`,
+          [usuarioId, vagaId, status],
+        );
+        return true;
+      } catch (erro) {
+        if ((erro as { code?: string }).code === VIOLACAO_CHAVE_ESTRANGEIRA) return false;
+        throw erro;
+      }
     },
   };
 }

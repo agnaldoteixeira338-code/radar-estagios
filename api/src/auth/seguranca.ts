@@ -1,11 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const CUSTO_BCRYPT = 12; // quanto maior, mais lento para um atacante testar senhas
+export const CUSTO_BCRYPT = 12; // quanto maior, mais lento para um atacante testar senhas
 const VALIDADE_TOKEN = '7d';
 
-export function gerarHashSenha(senha: string): Promise<string> {
-  return bcrypt.hash(senha, CUSTO_BCRYPT);
+// O custo pode ser trocado só nos testes, para eles rodarem rápido; em produção é sempre 12.
+export function gerarHashSenha(senha: string, custo: number = CUSTO_BCRYPT): Promise<string> {
+  return bcrypt.hash(senha, custo);
 }
 
 export function conferirSenha(senha: string, hash: string): Promise<boolean> {

@@ -1,27 +1,24 @@
-import type { FiltrosVagas, Vaga, VagasRepositorio } from '../src/vagas/tipos';
+import type { Status, VagaDoBanco, VagasRepositorio } from '../src/vagas/tipos';
 
-// Repositório "de mentira" para os testes: guarda as vagas na memória
-// e anota os filtros recebidos, sem precisar de banco de dados.
-export function criarRepositorioFalso(vagas: Vaga[] = []) {
-  const chamadas: FiltrosVagas[] = [];
+// Repositório "de mentira" para os testes: guarda vagas e candidaturas na memória, sem banco.
+export function criarRepositorioFalso(vagas: VagaDoBanco[] = []) {
+  const candidaturas = new Map<string, Status>(); // chave "usuarioId:vagaId"
   const repositorio: VagasRepositorio = {
-    async listar(filtros) {
-      chamadas.push(filtros);
+    async listar(usuarioId, { modalidade }) {
       return vagas
-        .filter((v) => !filtros.modalidade || v.modalidade === filtros.modalidade)
-        .slice(0, filtros.limite);
+        .filter((v) => !modalidade || v.modalidade === modalidade)
+        .map((v) => ({ ...v, status: candidaturas.get(`${usuarioId}:${v.id}`) ?? 'pendente' }));
     },
-    async atualizarStatus(id, status) {
-      const vaga = vagas.find((v) => v.id === id);
-      if (!vaga) return null;
-      vaga.status = status;
-      return vaga;
+    async salvarStatus(usuarioId, vagaId, status) {
+      if (!vagas.some((v) => v.id === vagaId)) return false;
+      candidaturas.set(`${usuarioId}:${vagaId}`, status);
+      return true;
     },
   };
-  return { repositorio, chamadas };
+  return { repositorio, candidaturas };
 }
 
-export function vagaExemplo(sobrescrever: Partial<Vaga> = {}): Vaga {
+export function vagaExemplo(sobrescrever: Partial<VagaDoBanco> = {}): VagaDoBanco {
   return {
     id: 1,
     fonte: 'gupy',
@@ -33,12 +30,7 @@ export function vagaExemplo(sobrescrever: Partial<Vaga> = {}): Vaga {
     modalidade: 'presencial',
     link: 'https://exemplo.gupy.io/jobs/123',
     publicadaEm: '2026-09-30',
-    notaCompatibilidade: 85,
-    habilidadesEncontradas: ['React', 'Node.js'],
-    requisitosFaltando: [],
-    diferenciaisFaltando: ['Docker'],
-    alertas: [],
-    motivoEliminacao: null,
+    descricao: 'Requisitos: React, Node.js e SQL.',
     status: 'pendente',
     ...sobrescrever,
   };

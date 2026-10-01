@@ -50,6 +50,7 @@ export function criarAppTeste(sobrescrever: Partial<Dependencias> = {}) {
     perfisRepositorio: criarPerfisFalso().repositorio,
     segredoJwt: SEGREDO_TESTE,
     limiteTentativasLogin: 1000,
+    custoBcrypt: 4, // mínimo do bcrypt: deixa os testes rápidos (produção usa 12)
     ...sobrescrever,
   });
 }
