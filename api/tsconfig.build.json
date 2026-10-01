@@ -1,0 +1,11 @@
+{
+  // Configuração usada só no "npm run build": compila apenas o código da aplicação (sem os testes).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

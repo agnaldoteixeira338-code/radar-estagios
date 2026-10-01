@@ -1,9 +1,11 @@
 {
+  // Configuração usada pelo editor (VS Code), pelos testes (ts-jest) e pelo "npm run typecheck".
+  // Inclui src e tests para que o editor reconheça describe/it/expect nos testes.
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": ".",
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,5 +13,5 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
