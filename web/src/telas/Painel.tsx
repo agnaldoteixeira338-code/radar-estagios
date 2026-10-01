@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
-import { atualizarStatus, ErroApi, listarVagas, type Status, type Usuario, type Vaga } from '../api'
+import { atualizarStatus, ErroApi, listarVagas, type Status, type Vaga } from '../api'
 import { CartaoVaga } from '../componentes/CartaoVaga'
 import { Filtros, type FiltroModalidade } from '../componentes/Filtros'
 import { Resumo } from '../componentes/Resumo'
 
 interface Props {
   token: string
-  usuario: Usuario
   aoSair: () => void
 }
 
-export function Painel({ token, usuario, aoSair }: Props) {
+export function Painel({ token, aoSair }: Props) {
   const [vagas, setVagas] = useState<Vaga[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -57,17 +56,7 @@ export function Painel({ token, usuario, aoSair }: Props) {
   )
 
   return (
-    <main className="painel">
-      <header className="topo">
-        <h1>Radar de Estágios</h1>
-        <div className="conta">
-          <span className="sutil">{usuario.email}</span>
-          <button type="button" className="botao-secundario" onClick={aoSair}>
-            Sair
-          </button>
-        </div>
-      </header>
-
+    <main>
       {erro && (
         <p className="erro" role="alert">
           {erro}

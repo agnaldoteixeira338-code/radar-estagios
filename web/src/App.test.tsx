@@ -8,6 +8,22 @@ import { validarNovaConta } from './telas/validacao'
 const CHAVE_TOKEN = 'radar-estagios:token'
 const USUARIO = { id: 1, nome: null, email: 'agnaldo@exemplo.com' }
 
+const CATALOGO = [
+  { id: 'javascript', nome: 'JavaScript', categoria: 'Linguagens' },
+  { id: 'python', nome: 'Python', categoria: 'Linguagens' },
+  { id: 'react', nome: 'React', categoria: 'Front-end' },
+  { id: 'sql', nome: 'SQL', categoria: 'Dados' },
+]
+
+const PERFIL_PREENCHIDO = {
+  habilidades: ['react', 'sql'],
+  formatura: '2028-01',
+  nivelIngles: 'intermediario',
+  modalidades: ['presencial', 'hibrido'],
+}
+
+const PERFIL_VAZIO = { habilidades: [], formatura: null, nivelIngles: 'basico', modalidades: ['presencial', 'hibrido', 'remoto'] }
+
 function vaga(sobrescrever: Partial<Vaga>): Vaga {
   return {
     id: 1,
@@ -49,6 +65,9 @@ function simularApi(sobrescrever: Record<string, Rota> = {}) {
     'POST /api/auth/login': () => json({ token: 'token-novo', usuario: USUARIO }),
     'POST /api/auth/cadastro': () => json({ token: 'token-novo', usuario: USUARIO }, 201),
     'GET /api/vagas': () => json({ total: VAGAS.length, vagas: structuredClone(VAGAS) }),
+    'GET /api/catalogo': () => json({ tecnologias: CATALOGO }),
+    'GET /api/perfil': () => json(PERFIL_PREENCHIDO),
+    'PUT /api/perfil': (_u, init) => json(JSON.parse(String(init?.body))),
     'PATCH /api/vagas': (_u, init) => json({ ...VAGAS[0], ...JSON.parse(String(init?.body)) }),
   }
   const rotas = { ...padrao, ...sobrescrever }
@@ -257,6 +276,98 @@ describe('Sessão', () => {
       '/api/vagas?limite=100',
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-salvo' }) }),
     )
+  })
+})
+
+describe('Meu perfil', () => {
+  beforeEach(logado)
+
+  it('no primeiro acesso (perfil vazio) abre direto o perfil com as boas-vindas', async () => {
+    simularApi({ 'GET /api/perfil': () => json(PERFIL_VAZIO) })
+    render(<App />)
+
+    expect(await screen.findByText(/Bem-vindo! Marque o que você sabe/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Meu perfil' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('com perfil preenchido abre nas vagas, e a aba "Meu perfil" mostra o que está salvo', async () => {
+    simularApi()
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    const linguagens = await screen.findByRole('group', { name: 'Linguagens' })
+    expect(within(linguagens).getByRole('checkbox', { name: 'Python' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'React' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'SQL' })).toBeChecked()
+    expect(screen.getByLabelText('Previsão de formatura')).toHaveValue('2028-01')
+    expect(screen.getByLabelText('Nível de inglês')).toHaveValue('intermediario')
+    expect(screen.getByRole('checkbox', { name: 'Remoto' })).not.toBeChecked()
+    expect(screen.getByText('2 selecionadas')).toBeInTheDocument()
+  })
+
+  it('salva as mudanças e volta para as vagas', async () => {
+    const fetchSimulado = simularApi()
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Python' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'React' }))
+    await userEvent.selectOptions(screen.getByLabelText('Nível de inglês'), 'avancado')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Remoto' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar perfil e ver vagas' }))
+
+    const put = fetchSimulado.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(put?.[0]).toBe('/api/perfil')
+    expect(JSON.parse(String(put?.[1]?.body))).toEqual({
+      habilidades: ['sql', 'python'],
+      formatura: '2028-01',
+      nivelIngles: 'avancado',
+      modalidades: ['presencial', 'hibrido', 'remoto'],
+    })
+    expect(await screen.findByText('Vaga Full Stack')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Vagas' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('formatura apagada é enviada como null (opcional)', async () => {
+    const fetchSimulado = simularApi()
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    fireEvent.change(await screen.findByLabelText('Previsão de formatura'), { target: { value: '' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar perfil e ver vagas' }))
+
+    const put = fetchSimulado.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(JSON.parse(String(put?.[1]?.body)).formatura).toBeNull()
+  })
+
+  it('exige pelo menos uma modalidade, sem chamar a API', async () => {
+    const fetchSimulado = simularApi()
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Presencial' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Híbrido' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar perfil e ver vagas' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Escolha pelo menos uma modalidade.')
+    expect(fetchSimulado.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+  })
+
+  it('mostra o erro e continua no perfil quando a API não salva', async () => {
+    simularApi({ 'PUT /api/perfil': () => json({ erro: 'habilidades desconhecidas: cobol' }, 400) })
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Salvar perfil e ver vagas' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível salvar o perfil. habilidades desconhecidas: cobol')
+    expect(screen.getByRole('button', { name: 'Meu perfil' })).toHaveAttribute('aria-current', 'page')
   })
 })
 

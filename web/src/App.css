@@ -368,3 +368,162 @@
   text-align: center;
   margin-top: 40vh;
 }
+
+/* Navegação entre abas */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.marca h1 {
+  margin: 0;
+}
+
+.topo {
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+}
+
+.aba {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--raio);
+  background: transparent;
+  color: var(--texto-2);
+  cursor: pointer;
+}
+
+.aba:hover {
+  background: var(--cartao-2);
+}
+
+.aba.ativa {
+  background: var(--destaque-fundo);
+  color: var(--destaque);
+  font-weight: 600;
+}
+
+.aba:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 2px;
+}
+
+/* Tela "Meu perfil" */
+.tela-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.boas-vindas {
+  background: var(--destaque-fundo);
+  color: var(--destaque);
+  padding: 12px 14px;
+  border-radius: var(--raio);
+  margin: 0;
+}
+
+.bloco {
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bloco h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.bloco > .sutil {
+  margin: -8px 0 0;
+}
+
+.grupo {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.grupo legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-2);
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.opcoes-perfil {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  padding: 5px 10px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  cursor: pointer;
+  user-select: none;
+}
+
+.opcao:has(input:checked) {
+  background: var(--destaque-fundo);
+  border-color: var(--destaque);
+  color: var(--destaque);
+}
+
+.opcao input {
+  margin: 0;
+  accent-color: var(--destaque);
+}
+
+.opcao:has(input:focus-visible) {
+  outline: 2px solid var(--destaque);
+  outline-offset: 1px;
+}
+
+.campo-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.campo-perfil label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.campo-perfil input,
+.campo-perfil select {
+  font: inherit;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+.tela-perfil .botao-principal {
+  align-self: flex-start;
+  padding: 0 20px;
+}

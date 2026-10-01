@@ -86,6 +86,36 @@ export const CATALOGO: Tecnologia[] = TECNOLOGIAS.map((t) => ({ ...t, padrao: co
 
 export const IDS_CATALOGO = new Set(CATALOGO.map((t) => t.id));
 
+// Quem sabe a tecnologia da esquerda também sabe as da direita.
+// Evita penalidades injustas, como "falta Banco de dados" para quem marcou PostgreSQL.
+export const IMPLICACOES: Record<string, string[]> = {
+  typescript: ['javascript'],
+  react: ['javascript', 'html-css'],
+  angular: ['javascript', 'html-css'],
+  vue: ['javascript', 'html-css'],
+  nodejs: ['javascript'],
+  express: ['nodejs', 'javascript'],
+  postgresql: ['sql', 'banco-de-dados'],
+  mysql: ['sql', 'banco-de-dados'],
+  mongodb: ['banco-de-dados'],
+  sql: ['banco-de-dados'],
+};
+
+// Expande as habilidades marcadas com tudo o que elas implicam (de forma transitiva).
+export function habilidadesEfetivas(marcadas: string[]): Set<string> {
+  const resultado = new Set(marcadas);
+  const pendentes = [...marcadas];
+  while (pendentes.length > 0) {
+    for (const implicada of IMPLICACOES[pendentes.pop()!] ?? []) {
+      if (!resultado.has(implicada)) {
+        resultado.add(implicada);
+        pendentes.push(implicada);
+      }
+    }
+  }
+  return resultado;
+}
+
 // Versão para enviar ao navegador (sem o padrão de busca, que é detalhe interno).
 export function catalogoPublico() {
   return CATALOGO.map(({ id, nome, categoria }) => ({ id, nome, categoria }));

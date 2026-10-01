@@ -9,7 +9,7 @@ import {
   verificarFormatura,
   type VagaParaAvaliar,
 } from '../src/compatibilidade/avaliar';
-import { CATALOGO } from '../src/perfil/catalogo';
+import { CATALOGO, habilidadesEfetivas, IMPLICACOES } from '../src/perfil/catalogo';
 import type { Perfil } from '../src/perfil/tipos';
 
 // Perfil de exemplo: o mesmo conjunto de habilidades do currículo usado no coletor original.
@@ -265,6 +265,38 @@ describe('limites de palavra com acento (bug do \\b do JavaScript)', () => {
   ])('"%s" continua sendo reconhecido normalmente: %s', (nome, texto) => {
     const a = avaliar(vaga('Estágio em TI', texto), { ...PERFIL, habilidades: [] });
     expect(a.requisitosFaltando).toContain(nome);
+  });
+});
+
+describe('habilidades implícitas', () => {
+  it('quem marcou PostgreSQL não leva "falta SQL" nem "falta Banco de dados"', () => {
+    const a = avaliar(vaga('Estágio', 'Requisitos: SQL e banco de dados relacional;'), { ...PERFIL, habilidades: ['postgresql'] });
+    expect(a.requisitosFaltando).toEqual([]);
+    expect(a.habilidadesEncontradas).toEqual(expect.arrayContaining(['SQL', 'Banco de dados']));
+  });
+
+  it('quem marcou React ou TypeScript não leva "falta JavaScript"', () => {
+    for (const habilidade of ['react', 'typescript']) {
+      const a = avaliar(vaga('Estágio', 'Requisitos: JavaScript;'), { ...PERFIL, habilidades: [habilidade] });
+      expect(a.requisitosFaltando).not.toContain('JavaScript');
+    }
+  });
+
+  it('implicações em cadeia: Express implica Node.js, que implica JavaScript', () => {
+    expect([...habilidadesEfetivas(['express'])].sort()).toEqual(['express', 'javascript', 'nodejs']);
+  });
+
+  it('a implicação não vale ao contrário: saber SQL não significa saber PostgreSQL', () => {
+    const a = avaliar(vaga('Estágio', 'Requisitos: PostgreSQL;'), { ...PERFIL, habilidades: ['sql'] });
+    expect(a.requisitosFaltando).toContain('PostgreSQL');
+  });
+
+  it('todas as implicações apontam para tecnologias que existem no catálogo', () => {
+    const ids = new Set(CATALOGO.map((t) => t.id));
+    for (const [origem, destinos] of Object.entries(IMPLICACOES)) {
+      expect(ids.has(origem)).toBe(true);
+      for (const destino of destinos) expect(ids.has(destino)).toBe(true);
+    }
   });
 });
 

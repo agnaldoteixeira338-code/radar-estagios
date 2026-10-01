@@ -32,6 +32,21 @@ export interface Sessao {
   usuario: Usuario
 }
 
+export type NivelIngles = 'basico' | 'intermediario' | 'avancado' | 'fluente'
+
+export interface Perfil {
+  habilidades: string[] // ids do catálogo
+  formatura: string | null // "AAAA-MM"
+  nivelIngles: NivelIngles
+  modalidades: Modalidade[]
+}
+
+export interface Tecnologia {
+  id: string
+  nome: string
+  categoria: string
+}
+
 const BASE = '/api'
 
 // Erro com o código HTTP, para quem chamou saber, por exemplo, se a sessão expirou (401).
@@ -74,6 +89,24 @@ export function criarConta(email: string, senha: string): Promise<Sessao> {
 
 export function buscarUsuario(token: string): Promise<Usuario> {
   return requisitar('/auth/eu', { token })
+}
+
+export async function buscarCatalogo(): Promise<Tecnologia[]> {
+  const dados = await requisitar<{ tecnologias: Tecnologia[] }>('/catalogo')
+  return dados.tecnologias
+}
+
+export function buscarPerfil(token: string): Promise<Perfil> {
+  return requisitar('/perfil', { token })
+}
+
+export function salvarPerfil(perfil: Perfil, token: string): Promise<Perfil> {
+  return requisitar('/perfil', { metodo: 'PUT', corpo: perfil, token })
+}
+
+// Perfil "vazio" = a pessoa ainda não informou nada que influencie a nota.
+export function perfilVazio(perfil: Perfil): boolean {
+  return perfil.habilidades.length === 0 && perfil.formatura === null
 }
 
 export async function listarVagas(token: string | null): Promise<Vaga[]> {

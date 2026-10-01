@@ -3,7 +3,7 @@ import { buscarUsuario, ErroApi, type Sessao } from './api'
 import { apagarToken, lerToken, salvarToken } from './sessao'
 import { CriarConta } from './telas/CriarConta'
 import { Entrar } from './telas/Entrar'
-import { Painel } from './telas/Painel'
+import { AreaLogada } from './telas/AreaLogada'
 import './App.css'
 
 type Estado =
@@ -71,6 +71,6 @@ export default function App() {
     case 'criar-conta':
       return <CriarConta aoCriarConta={iniciarSessao} irParaEntrar={() => setEstado({ tela: 'entrar' })} />
     case 'painel':
-      return <Painel token={estado.sessao.token} usuario={estado.sessao.usuario} aoSair={sair} />
+      return <AreaLogada sessao={estado.sessao} aoSair={sair} />
   }
 }

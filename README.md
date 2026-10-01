@@ -63,12 +63,15 @@ Calculada na hora, a cada pedido, com o perfil de quem está logado (`api/src/co
 
 - Requisitos que aparecem como **diferencial/desejável** não tiram pontos: só são listados.
 - Itens que descrevem a área da vaga (Full Stack, Front-end, Back-end, Lógica de programação) somam pontos, mas não tiram quando faltam.
+- Habilidades implícitas: quem marca PostgreSQL também "sabe" SQL e Banco de dados; React, TypeScript ou Node.js implicam JavaScript (`IMPLICACOES` em `catalogo.ts`).
 - Cada vaga traz o motivo da nota: tecnologias encontradas, o que falta, diferenciais e alertas (ex.: "vaga afirmativa").
 - Os padrões de busca entendem acentos: "excelência" não é confundido com Excel, nem "expressão" com Express (o `\b` do JavaScript não reconhece letras acentuadas; ver `api/src/compatibilidade/regex.ts`).
 
 ## Painel
 
-Tela de login (e-mail e senha) e de criação de conta (e-mail, senha e confirmação). Depois de entrar, lista as vagas por nota de compatibilidade, com filtros por modalidade e nota mínima, o motivo de cada nota (habilidades, o que falta, alertas) e o status de cada candidatura, salvo no banco.
+- **Entrar / Criar conta:** login com e-mail e senha; criação de conta com e-mail, senha e confirmação.
+- **Meu perfil:** tecnologias agrupadas por categoria, previsão de formatura (opcional), nível de inglês e modalidades aceitas. No primeiro acesso, a pessoa cai direto aqui.
+- **Vagas:** lista por nota de compatibilidade (calculada para o perfil de quem está logado), com filtros por modalidade e nota mínima, o motivo de cada nota (o que a pessoa tem, o que falta, diferenciais, alertas) e o status de cada candidatura.
 
 ```bash
 cd web

@@ -12,7 +12,7 @@
 //
 // Requisitos que aparecem como "diferencial"/"desejável" não tiram pontos: só são listados.
 
-import { CATALOGO, type Tecnologia } from '../perfil/catalogo';
+import { CATALOGO, habilidadesEfetivas, type Tecnologia } from '../perfil/catalogo';
 import type { NivelIngles, Perfil } from '../perfil/tipos';
 import type { Modalidade } from '../vagas/tipos';
 import { comLimitesDePalavra } from './regex';
@@ -148,7 +148,8 @@ function formaturaDoPerfil(perfil: Perfil): MesAno | null {
 
 export function avaliar(vaga: VagaParaAvaliar, perfil: Perfil, catalogo: Tecnologia[] = CATALOGO): Avaliacao {
   const texto = limparTexto(`${vaga.titulo}\n${vaga.descricao ?? ''}`);
-  const sabe = new Set(perfil.habilidades);
+  // Inclui o que as habilidades marcadas implicam (ex.: PostgreSQL implica SQL e Banco de dados).
+  const sabe = habilidadesEfetivas(perfil.habilidades);
 
   // Sem formatura no perfil, a regra eliminatória não se aplica (não dá para comparar).
   const formatura = formaturaDoPerfil(perfil);
