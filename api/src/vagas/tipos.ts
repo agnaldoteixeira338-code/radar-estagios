@@ -1,6 +1,9 @@
 export const MODALIDADES = ['presencial', 'hibrido', 'remoto'] as const;
 export type Modalidade = (typeof MODALIDADES)[number];
 
+export const STATUS = ['pendente', 'enviada', 'entrevista', 'recusada', 'sem_interesse'] as const;
+export type Status = (typeof STATUS)[number];
+
 export interface Vaga {
   id: number;
   fonte: string;
@@ -18,6 +21,7 @@ export interface Vaga {
   diferenciaisFaltando: string[]; // diferenciais que você ainda não tem
   alertas: string[];
   motivoEliminacao: string | null;
+  status: Status; // situação da sua candidatura
 }
 
 export interface FiltrosVagas {
@@ -29,4 +33,6 @@ export interface FiltrosVagas {
 // Isso permite trocar o banco real por um falso nos testes.
 export interface VagasRepositorio {
   listar(filtros: FiltrosVagas): Promise<Vaga[]>;
+  // Devolve a vaga atualizada, ou null se o id não existir.
+  atualizarStatus(id: number, status: Status): Promise<Vaga | null>;
 }

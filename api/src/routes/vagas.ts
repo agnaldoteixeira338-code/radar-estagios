@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { MODALIDADES, type Modalidade, type VagasRepositorio } from '../vagas/tipos';
+import {
+  MODALIDADES,
+  STATUS,
+  type Modalidade,
+  type Status,
+  type VagasRepositorio,
+} from '../vagas/tipos';
 
 const LIMITE_PADRAO = 20;
 const LIMITE_MAXIMO = 100;
@@ -28,6 +34,29 @@ export function criarVagasRouter(repositorio: VagasRepositorio) {
       limite: limiteNumero,
     });
     res.json({ total: vagas.length, vagas });
+  });
+
+  // PATCH /vagas/:id/status   corpo: { "status": "enviada" }
+  // Atualiza a situação da sua candidatura nessa vaga.
+  router.patch('/:id/status', async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      res.status(400).json({ erro: 'id deve ser um número inteiro positivo' });
+      return;
+    }
+
+    const status = req.body?.status;
+    if (!STATUS.includes(status)) {
+      res.status(400).json({ erro: `status deve ser um destes: ${STATUS.join(', ')}` });
+      return;
+    }
+
+    const vaga = await repositorio.atualizarStatus(id, status as Status);
+    if (!vaga) {
+      res.status(404).json({ erro: 'Vaga não encontrada' });
+      return;
+    }
+    res.json(vaga);
   });
 
   return router;

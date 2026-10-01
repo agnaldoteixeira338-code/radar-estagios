@@ -11,6 +11,12 @@ export function criarRepositorioFalso(vagas: Vaga[] = []) {
         .filter((v) => !filtros.modalidade || v.modalidade === filtros.modalidade)
         .slice(0, filtros.limite);
     },
+    async atualizarStatus(id, status) {
+      const vaga = vagas.find((v) => v.id === id);
+      if (!vaga) return null;
+      vaga.status = status;
+      return vaga;
+    },
   };
   return { repositorio, chamadas };
 }
@@ -33,6 +39,7 @@ export function vagaExemplo(sobrescrever: Partial<Vaga> = {}): Vaga {
     diferenciaisFaltando: ['Docker'],
     alertas: [],
     motivoEliminacao: null,
+    status: 'pendente',
     ...sobrescrever,
   };
 }

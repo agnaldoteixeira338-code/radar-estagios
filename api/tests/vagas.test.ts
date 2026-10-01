@@ -64,6 +64,9 @@ describe('GET /vagas', () => {
       async listar() {
         throw new Error('conexão recusada em postgresql://usuario:senha@host');
       },
+      async atualizarStatus() {
+        throw new Error('conexão recusada em postgresql://usuario:senha@host');
+      },
     };
 
     const resposta = await request(criarApp({ vagasRepositorio: repositorioQuebrado })).get('/vagas');
