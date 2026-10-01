@@ -41,6 +41,9 @@ npm test        # testes automatizados
 | `POST /auth/cadastro` | Cria uma conta. Corpo: `{ "nome", "email", "senha" }` (senha com 8+ caracteres). Devolve `{ token, usuario }` |
 | `POST /auth/login` | Entra na conta. Corpo: `{ "email", "senha" }`. Devolve `{ token, usuario }` |
 | `GET /auth/eu` | Dados de quem está logado. Cabeçalho: `Authorization: Bearer <token>` |
+| `GET /catalogo` | Lista pública das tecnologias que podem ser marcadas no perfil (`id`, `nome`, `categoria`) |
+| `GET /perfil` | Perfil de quem está logado (vazio se ainda não preencheu). Exige login |
+| `PUT /perfil` | Salva o perfil. Corpo: `{ "habilidades": ["react", "sql"], "formatura": "2028-01" ou null, "nivelIngles": "basico" \| "intermediario" \| "avancado" \| "fluente", "modalidades": ["presencial", "hibrido", "remoto"] }`. Exige login |
 | `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas, das mais compatíveis para as menos. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100 |
 | `PATCH /vagas/:id/status` | Atualiza o status da candidatura. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`) |
 

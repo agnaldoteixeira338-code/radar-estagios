@@ -1,13 +1,16 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { UsuariosRepositorio } from './auth/tipos';
+import type { PerfisRepositorio } from './perfil/tipos';
 import { criarAuthRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
+import { criarCatalogoRouter, criarPerfilRouter } from './routes/perfil';
 import { criarVagasRouter } from './routes/vagas';
 import type { VagasRepositorio } from './vagas/tipos';
 
 export interface Dependencias {
   vagasRepositorio: VagasRepositorio;
   usuariosRepositorio: UsuariosRepositorio;
+  perfisRepositorio: PerfisRepositorio;
   segredoJwt: string;
   limiteTentativasLogin?: number;
 }
@@ -28,6 +31,8 @@ export function criarApp(dependencias: Dependencias) {
       limiteTentativas: dependencias.limiteTentativasLogin,
     }),
   );
+  app.use('/catalogo', criarCatalogoRouter());
+  app.use('/perfil', criarPerfilRouter(dependencias.perfisRepositorio, dependencias.segredoJwt));
   app.use('/vagas', criarVagasRouter(dependencias.vagasRepositorio));
 
   // Tratador de erros: registra o erro completo no terminal (para quem desenvolve)

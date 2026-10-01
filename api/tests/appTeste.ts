@@ -1,5 +1,6 @@
 import { criarApp, type Dependencias } from '../src/app';
 import type { Usuario, UsuarioComSenha, UsuariosRepositorio } from '../src/auth/tipos';
+import type { Perfil, PerfisRepositorio } from '../src/perfil/tipos';
 import { criarRepositorioFalso } from './repositorioFalso';
 
 export const SEGREDO_TESTE = 'segredo-de-teste-com-mais-de-32-caracteres!!';
@@ -26,11 +27,27 @@ export function criarUsuariosFalso() {
   return { repositorio, usuarios };
 }
 
+// Repositório de perfis na memória, sem banco.
+export function criarPerfisFalso() {
+  const perfis = new Map<number, Perfil>();
+  const repositorio: PerfisRepositorio = {
+    async buscar(usuarioId) {
+      return perfis.get(usuarioId) ?? null;
+    },
+    async salvar(usuarioId, perfil) {
+      perfis.set(usuarioId, perfil);
+      return perfil;
+    },
+  };
+  return { repositorio, perfis };
+}
+
 // Monta o app com dependências falsas; cada teste pode trocar só o que precisa.
 export function criarAppTeste(sobrescrever: Partial<Dependencias> = {}) {
   return criarApp({
     vagasRepositorio: criarRepositorioFalso().repositorio,
     usuariosRepositorio: criarUsuariosFalso().repositorio,
+    perfisRepositorio: criarPerfisFalso().repositorio,
     segredoJwt: SEGREDO_TESTE,
     limiteTentativasLogin: 1000,
     ...sobrescrever,

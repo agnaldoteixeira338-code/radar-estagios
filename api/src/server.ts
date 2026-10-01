@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { criarApp } from './app';
 import { criarUsuariosRepositorio } from './auth/repositorio';
 import { obterPool } from './db';
+import { criarPerfisRepositorio } from './perfil/repositorio';
 import { criarVagasRepositorio } from './vagas/repositorio';
 
 const porta = Number(process.env.PORT) || 4000;
@@ -17,6 +18,7 @@ const pool = obterPool();
 const app = criarApp({
   vagasRepositorio: criarVagasRepositorio(pool),
   usuariosRepositorio: criarUsuariosRepositorio(pool),
+  perfisRepositorio: criarPerfisRepositorio(pool),
   segredoJwt,
 });
 
