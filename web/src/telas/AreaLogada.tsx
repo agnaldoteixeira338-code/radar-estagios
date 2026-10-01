@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react'
 import { buscarPerfil, ErroApi, perfilVazio, type Sessao } from '../api'
 import { Cabecalho, type Aba } from '../componentes/Cabecalho'
+import { MinhaConta } from '../componentes/MinhaConta'
 import { Painel } from './Painel'
+import { Privacidade } from './Privacidade'
 import { TelaPerfil } from './TelaPerfil'
 
 interface Props {
   sessao: Sessao
   aoSair: () => void
+  aoExcluirConta: () => void
 }
 
 // Tudo o que aparece depois do login: cabeçalho com navegação + a aba escolhida.
 // No primeiro acesso (perfil ainda vazio), abre direto em "Meu perfil".
-export function AreaLogada({ sessao, aoSair }: Props) {
+export function AreaLogada({ sessao, aoSair, aoExcluirConta }: Props) {
   const [aba, setAba] = useState<Aba | null>(null)
   const [primeiroAcesso, setPrimeiroAcesso] = useState(false)
+  const [lendoPrivacidade, setLendoPrivacidade] = useState(false)
 
   useEffect(() => {
     let ativo = true
@@ -34,21 +38,32 @@ export function AreaLogada({ sessao, aoSair }: Props) {
     }
   }, [sessao.token, aoSair])
 
+  if (lendoPrivacidade) return <Privacidade aoVoltar={() => setLendoPrivacidade(false)} />
+
   return (
     <div className="painel">
       <Cabecalho email={sessao.usuario.email} aba={aba ?? 'vagas'} aoMudarAba={setAba} aoSair={aoSair} />
       {aba === null && <p className="sutil">Carregando…</p>}
       {aba === 'vagas' && <Painel token={sessao.token} aoSair={aoSair} />}
       {aba === 'perfil' && (
-        <TelaPerfil
-          token={sessao.token}
-          primeiroAcesso={primeiroAcesso}
-          aoSair={aoSair}
-          aoSalvar={() => {
-            setPrimeiroAcesso(false)
-            setAba('vagas')
-          }}
-        />
+        <div className="coluna">
+          <TelaPerfil
+            token={sessao.token}
+            primeiroAcesso={primeiroAcesso}
+            aoSair={aoSair}
+            aoSalvar={() => {
+              setPrimeiroAcesso(false)
+              setAba('vagas')
+            }}
+          />
+          <MinhaConta
+            token={sessao.token}
+            email={sessao.usuario.email}
+            aoExcluir={aoExcluirConta}
+            aoSair={aoSair}
+            verPrivacidade={() => setLendoPrivacidade(true)}
+          />
+        </div>
       )}
     </div>
   )

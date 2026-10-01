@@ -14,12 +14,21 @@ if (!segredoJwt || segredoJwt.length < 32) {
   process.exit(1);
 }
 
+// Opcional (usado na publicação): origens do painel separadas por vírgula, e nº de proxies na frente da API.
+const origensPermitidas = (process.env.CORS_ORIGENS ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+const proxiesConfiaveis = Number(process.env.PROXIES_CONFIAVEIS) || 0;
+
 const pool = obterPool();
 const app = criarApp({
   vagasRepositorio: criarVagasRepositorio(pool),
   usuariosRepositorio: criarUsuariosRepositorio(pool),
   perfisRepositorio: criarPerfisRepositorio(pool),
   segredoJwt,
+  origensPermitidas: origensPermitidas.length > 0 ? origensPermitidas : undefined,
+  proxiesConfiaveis,
 });
 
 app.listen(porta, () => {

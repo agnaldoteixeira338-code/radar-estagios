@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { Modalidade, Status, VagaDoBanco, VagasRepositorio } from './tipos';
+import type { Candidatura, Modalidade, Status, VagaDoBanco, VagasRepositorio } from './tipos';
 
 const VIOLACAO_CHAVE_ESTRANGEIRA = '23503'; // código do PostgreSQL: a vaga referenciada não existe
 
@@ -25,6 +25,19 @@ export function criarVagasRepositorio(pool: Pool): VagasRepositorio {
            LEFT JOIN candidaturas c ON c.vaga_id = v.id AND c.usuario_id = $1
           WHERE ($2::text IS NULL OR v.modalidade = $2)`,
         [usuarioId, modalidade ?? null],
+      );
+      return rows;
+    },
+
+    async listarCandidaturas(usuarioId: number): Promise<Candidatura[]> {
+      const { rows } = await pool.query<Candidatura>(
+        `SELECT c.vaga_id AS "vagaId", v.titulo, v.empresa, v.link, c.status,
+                TO_CHAR(c.atualizado_em AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "atualizadoEm"
+           FROM candidaturas c
+           JOIN vagas v ON v.id = c.vaga_id
+          WHERE c.usuario_id = $1
+          ORDER BY c.atualizado_em DESC`,
+        [usuarioId],
       );
       return rows;
     },

@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import { exigirLogin } from '../auth/middleware';
+import { Router, type RequestHandler } from 'express';
 import { avaliar } from '../compatibilidade/avaliar';
 import { PERFIL_VAZIO, type PerfisRepositorio } from '../perfil/tipos';
 import { MODALIDADES, STATUS, type Modalidade, type Status, type Vaga, type VagasRepositorio } from '../vagas/tipos';
@@ -7,9 +6,9 @@ import { MODALIDADES, STATUS, type Modalidade, type Status, type Vaga, type Vaga
 const LIMITE_PADRAO = 20;
 const LIMITE_MAXIMO = 100;
 
-export function criarVagasRouter(vagas: VagasRepositorio, perfis: PerfisRepositorio, segredoJwt: string) {
+export function criarVagasRouter(vagas: VagasRepositorio, perfis: PerfisRepositorio, autenticar: RequestHandler) {
   const router = Router();
-  router.use(exigirLogin(segredoJwt));
+  router.use(autenticar);
 
   // GET /vagas?modalidade=presencial&limite=10
   // Lista as vagas com a nota calculada para o perfil de quem está logado, da maior para a menor.

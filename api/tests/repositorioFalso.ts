@@ -9,6 +9,14 @@ export function criarRepositorioFalso(vagas: VagaDoBanco[] = []) {
         .filter((v) => !modalidade || v.modalidade === modalidade)
         .map((v) => ({ ...v, status: candidaturas.get(`${usuarioId}:${v.id}`) ?? 'pendente' }));
     },
+    async listarCandidaturas(usuarioId) {
+      return [...candidaturas]
+        .filter(([chave]) => chave.startsWith(`${usuarioId}:`))
+        .map(([chave, status]) => {
+          const vaga = vagas.find((v) => v.id === Number(chave.split(':')[1]))!;
+          return { vagaId: vaga.id, titulo: vaga.titulo, empresa: vaga.empresa, link: vaga.link, status, atualizadoEm: '2026-10-01T12:00:00Z' };
+        });
+    },
     async salvarStatus(usuarioId, vagaId, status) {
       if (!vagas.some((v) => v.id === vagaId)) return false;
       candidaturas.set(`${usuarioId}:${vagaId}`, status);

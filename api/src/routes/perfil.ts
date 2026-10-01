@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import { exigirLogin } from '../auth/middleware';
+import { Router, type RequestHandler } from 'express';
 import { catalogoPublico } from '../perfil/catalogo';
 import { PERFIL_VAZIO, type PerfisRepositorio } from '../perfil/tipos';
 import { validarPerfil } from '../perfil/validacao';
@@ -14,9 +13,9 @@ export function criarCatalogoRouter() {
 }
 
 // GET /perfil e PUT /perfil: perfil de quem está logado.
-export function criarPerfilRouter(perfis: PerfisRepositorio, segredoJwt: string) {
+export function criarPerfilRouter(perfis: PerfisRepositorio, autenticar: RequestHandler) {
   const router = Router();
-  router.use(exigirLogin(segredoJwt));
+  router.use(autenticar);
 
   router.get('/', async (req, res) => {
     const perfil = await perfis.buscar(req.usuarioId!);

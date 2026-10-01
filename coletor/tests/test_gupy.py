@@ -1,4 +1,6 @@
-from coletor.gupy import TAMANHO_PAGINA, buscar_vagas, normalizar
+import pytest
+
+from coletor.gupy import TAMANHO_PAGINA, buscar_vagas, link_seguro, normalizar
 
 
 def vaga_bruta(**sobrescrever):
@@ -69,6 +71,35 @@ def test_normalizar_trata_campos_vazios_como_nulos():
     assert vaga["descricao"] is None
     assert vaga["publicada_em"] is None
     assert vaga["empresa"] == "Empresa não informada"
+
+
+@pytest.mark.parametrize(
+    "link",
+    ["https://exemplo.gupy.io/job/abc", "http://exemplo.com/vaga?id=1", "HTTPS://EXEMPLO.COM"],
+)
+def test_link_seguro_aceita_http_e_https(link):
+    assert link_seguro(link) == link
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "javascript:alert(1)",
+        "JaVaScRiPt:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "vbscript:msgbox(1)",
+        "//exemplo.com/sem-protocolo",
+        "https://exemplo.com/com espaço",
+        "",
+        None,
+    ],
+)
+def test_link_seguro_recusa_links_perigosos_ou_invalidos(link):
+    assert link_seguro(link) is None
+
+
+def test_normalizar_marca_link_perigoso_como_none():
+    assert normalizar(vaga_bruta(jobUrl="javascript:alert(1)"))["link"] is None
 
 
 def test_buscar_vagas_para_quando_a_pagina_vem_incompleta():

@@ -68,6 +68,8 @@ function simularApi(sobrescrever: Record<string, Rota> = {}) {
     'GET /api/catalogo': () => json({ tecnologias: CATALOGO }),
     'GET /api/perfil': () => json(PERFIL_PREENCHIDO),
     'PUT /api/perfil': (_u, init) => json(JSON.parse(String(init?.body))),
+    'GET /api/conta/dados': () => json({ conta: USUARIO, perfil: PERFIL_PREENCHIDO, candidaturas: [] }),
+    'DELETE /api/conta': () => Promise.resolve(new Response(null, { status: 204 })),
     'PATCH /api/vagas': (_u, init) => json({ ...VAGAS[0], ...JSON.parse(String(init?.body)) }),
   }
   const rotas = { ...padrao, ...sobrescrever }
@@ -371,8 +373,133 @@ describe('Meu perfil', () => {
   })
 })
 
+describe('Privacidade', () => {
+  it('o aviso abre pelo login e volta para o login', async () => {
+    simularApi()
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aviso de privacidade' }))
+    expect(screen.getByRole('heading', { name: 'Aviso de privacidade' })).toBeInTheDocument()
+    expect(screen.getByText(/Não pedimos nome, CPF, telefone nem currículo/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: '← Voltar' }))
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+  })
+
+  it('criar conta informa o aviso e volta para o criar conta', async () => {
+    simularApi()
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(screen.getByText(/Ao criar a conta, você concorda com o/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Aviso de privacidade' }))
+    await userEvent.click(screen.getByRole('button', { name: '← Voltar' }))
+
+    expect(screen.getByLabelText('Confirmar senha')).toBeInTheDocument()
+  })
+})
+
+describe('Sua conta e privacidade', () => {
+  beforeEach(logado)
+
+  async function abrirMeuPerfil() {
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+    await userEvent.click(screen.getByRole('button', { name: 'Meu perfil' }))
+    return screen.findByRole('region', { name: 'Sua conta e privacidade' })
+  }
+
+  it('baixa os dados da pessoa como arquivo', async () => {
+    const fetchSimulado = simularApi()
+    const criarUrl = vi.fn(() => 'blob:dados')
+    URL.createObjectURL = criarUrl
+    URL.revokeObjectURL = vi.fn()
+    const clique = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const secao = await abrirMeuPerfil()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Baixar meus dados' }))
+
+    expect(fetchSimulado).toHaveBeenCalledWith('/api/conta/dados', expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-salvo' }) }))
+    expect(criarUrl).toHaveBeenCalled()
+    expect(clique).toHaveBeenCalled()
+  })
+
+  it('excluir pede a senha antes e pode ser cancelado', async () => {
+    const fetchSimulado = simularApi()
+    const secao = await abrirMeuPerfil()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir minha conta' }))
+    expect(within(secao).getByText(/Não dá para desfazer/)).toBeInTheDocument()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir definitivamente' }))
+    expect(within(secao).getByRole('alert')).toHaveTextContent('Digite sua senha para confirmar.')
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Cancelar' }))
+    expect(within(secao).queryByLabelText('Digite sua senha para confirmar')).not.toBeInTheDocument()
+    expect(fetchSimulado.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+  })
+
+  it('com senha errada mostra o erro e mantém a conta', async () => {
+    simularApi({ 'DELETE /api/conta': () => json({ erro: 'Senha incorreta' }, 403) })
+    const secao = await abrirMeuPerfil()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir minha conta' }))
+    await userEvent.type(within(secao).getByLabelText('Digite sua senha para confirmar'), 'errada-123')
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir definitivamente' }))
+
+    expect(await within(secao).findByRole('alert')).toHaveTextContent('Senha incorreta')
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBe('token-salvo')
+  })
+
+  it('com a senha certa exclui, apaga a sessão e avisa no login', async () => {
+    const fetchSimulado = simularApi()
+    const secao = await abrirMeuPerfil()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir minha conta' }))
+    await userEvent.type(within(secao).getByLabelText('Digite sua senha para confirmar'), 'senha-forte-123')
+    await userEvent.click(within(secao).getByRole('button', { name: 'Excluir definitivamente' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Sua conta foi excluída.')
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBeNull()
+    expect(fetchSimulado).toHaveBeenCalledWith('/api/conta', expect.objectContaining({ method: 'DELETE', body: '{"senha":"senha-forte-123"}' }))
+  })
+
+  it('o aviso de privacidade abre pela conta e volta para o perfil', async () => {
+    simularApi()
+    const secao = await abrirMeuPerfil()
+
+    await userEvent.click(within(secao).getByRole('button', { name: 'Aviso de privacidade' }))
+    await userEvent.click(screen.getByRole('button', { name: '← Voltar' }))
+
+    expect(await screen.findByRole('region', { name: 'Sua conta e privacidade' })).toBeInTheDocument()
+  })
+})
+
 describe('Painel', () => {
   beforeEach(logado)
+
+  it('não transforma em link um endereço inseguro vindo dos dados', async () => {
+    simularApi({
+      'GET /api/vagas': () => json({ total: 1, vagas: [vaga({ id: 9, titulo: 'Vaga Suspeita', link: 'javascript:alert(1)' })] }),
+    })
+    render(<App />)
+
+    const cartao = await screen.findByRole('article', { name: 'Vaga Suspeita' })
+    expect(within(cartao).queryByRole('link')).not.toBeInTheDocument()
+    expect(within(cartao).getByText('Link indisponível')).toBeInTheDocument()
+  })
+
+  it('links seguros abrem em nova aba sem dar acesso à página de origem', async () => {
+    simularApi()
+    render(<App />)
+
+    const cartao = await screen.findByRole('article', { name: 'Vaga Full Stack' })
+    const link = within(cartao).getByRole('link', { name: 'Abrir vaga ↗' })
+    expect(link).toHaveAttribute('href', 'https://exemplo.gupy.io/job/1')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
 
   it('mostra o resumo e as vagas com nota 40 ou mais, da maior para a menor', async () => {
     simularApi()

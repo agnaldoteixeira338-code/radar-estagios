@@ -49,7 +49,9 @@ def main() -> None:
         aceitas = 0
         for bruta in brutas:
             vaga = normalizar(bruta)
-            if e_vaga_de_ti(vaga["titulo"]):
+            if vaga["link"] is None:  # link ausente ou inseguro: não entra no banco
+                descartadas.add(vaga["id_externo"])
+            elif e_vaga_de_ti(vaga["titulo"]):
                 vagas[vaga["id_externo"]] = vaga
                 aceitas += 1
             else:

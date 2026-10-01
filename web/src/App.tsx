@@ -4,12 +4,14 @@ import { apagarToken, lerToken, salvarToken } from './sessao'
 import { CriarConta } from './telas/CriarConta'
 import { Entrar } from './telas/Entrar'
 import { AreaLogada } from './telas/AreaLogada'
+import { Privacidade } from './telas/Privacidade'
 import './App.css'
 
 type Estado =
   | { tela: 'verificando' }
-  | { tela: 'entrar' }
+  | { tela: 'entrar'; aviso?: string }
   | { tela: 'criar-conta' }
+  | { tela: 'privacidade'; voltarPara: 'entrar' | 'criar-conta' }
   | { tela: 'painel'; sessao: Sessao }
   | { tela: 'sem-conexao' }
 
@@ -45,6 +47,11 @@ export default function App() {
     setEstado({ tela: 'entrar' })
   }, [])
 
+  const contaExcluida = useCallback(() => {
+    apagarToken()
+    setEstado({ tela: 'entrar', aviso: 'Sua conta foi excluída. Todos os seus dados foram apagados.' })
+  }, [])
+
   switch (estado.tela) {
     case 'verificando':
       return <p className="carregando-tela sutil">Carregando…</p>
@@ -67,10 +74,27 @@ export default function App() {
         </main>
       )
     case 'entrar':
-      return <Entrar aoEntrar={iniciarSessao} irParaCriarConta={() => setEstado({ tela: 'criar-conta' })} />
+      return (
+        <Entrar
+          aviso={estado.aviso}
+          aoEntrar={iniciarSessao}
+          irParaCriarConta={() => setEstado({ tela: 'criar-conta' })}
+          verPrivacidade={() => setEstado({ tela: 'privacidade', voltarPara: 'entrar' })}
+        />
+      )
     case 'criar-conta':
-      return <CriarConta aoCriarConta={iniciarSessao} irParaEntrar={() => setEstado({ tela: 'entrar' })} />
+      return (
+        <CriarConta
+          aoCriarConta={iniciarSessao}
+          irParaEntrar={() => setEstado({ tela: 'entrar' })}
+          verPrivacidade={() => setEstado({ tela: 'privacidade', voltarPara: 'criar-conta' })}
+        />
+      )
+    case 'privacidade': {
+      const voltarPara = estado.voltarPara
+      return <Privacidade aoVoltar={() => setEstado({ tela: voltarPara })} />
+    }
     case 'painel':
-      return <AreaLogada sessao={estado.sessao} aoSair={sair} />
+      return <AreaLogada sessao={estado.sessao} aoSair={sair} aoExcluirConta={contaExcluida} />
   }
 }

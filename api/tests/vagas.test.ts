@@ -113,6 +113,9 @@ describe('GET /vagas', () => {
       async salvarStatus() {
         throw new Error('conexão recusada em postgresql://usuario:senha@host');
       },
+      async listarCandidaturas() {
+        throw new Error('conexão recusada em postgresql://usuario:senha@host');
+      },
     };
     const { app, entrar } = await montar([], quebrado);
     const token = await entrar('a@exemplo.com');

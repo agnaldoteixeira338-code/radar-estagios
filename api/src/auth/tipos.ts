@@ -14,4 +14,6 @@ export interface UsuariosRepositorio {
   buscarPorId(id: number): Promise<Usuario | null>;
   // Devolve null se o e-mail já estiver em uso.
   criar(dados: { nome: string | null; email: string; senhaHash: string }): Promise<Usuario | null>;
+  // Apaga a conta; perfil e candidaturas vão junto (ON DELETE CASCADE no banco).
+  excluir(id: number): Promise<void>;
 }

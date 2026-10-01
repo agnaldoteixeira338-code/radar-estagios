@@ -20,6 +20,10 @@ export function criarUsuariosRepositorio(pool: Pool): UsuariosRepositorio {
       return rows[0] ?? null;
     },
 
+    async excluir(id) {
+      await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    },
+
     async criar({ nome, email, senhaHash }) {
       try {
         const { rows } = await pool.query<Usuario>(

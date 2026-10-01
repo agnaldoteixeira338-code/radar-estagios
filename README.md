@@ -22,8 +22,19 @@ Copie `api/.env.example` para `api/.env` e preencha `DATABASE_URL` com a string 
 - Senhas guardadas só como hash bcrypt (custo 12); nunca aparecem nas respostas.
 - Login devolve um token JWT (HS256, validade de 7 dias); tokens adulterados, vencidos ou sem assinatura são recusados.
 - Mesma resposta e tempo parecido para "senha errada" e "e-mail não cadastrado", para não revelar quem tem conta.
-- Limite de 10 tentativas de login/cadastro por IP a cada 15 minutos.
+- Limite de 10 tentativas de login/cadastro (e de senha na exclusão de conta) por IP a cada 15 minutos, e de 600 requisições gerais.
 - A API não liga sem um `JWT_SECRET` forte configurado.
+- Cada requisição autenticada confere se a conta ainda existe: o token de uma conta excluída para de funcionar na hora.
+- Cabeçalhos de segurança HTTP (helmet), CORS fechado por padrão (liberado só para as origens em `CORS_ORIGENS`), corpo limitado a 100 KB e erros sem detalhes internos.
+- Links de vagas só são aceitos e exibidos se forem `http(s)` (bloqueia `javascript:` e similares).
+- Todo SQL usa parâmetros (sem SQL injection).
+- Dependências auditadas com `npm audit` e `pip-audit` (0 vulnerabilidades conhecidas em 01/10/2026).
+
+### Privacidade (LGPD)
+
+- Dados mínimos: e-mail, hash da senha, perfil e status das candidaturas. Sem nome obrigatório, CPF, telefone, rastreamento ou analytics.
+- Direitos no próprio painel: **baixar meus dados** (acesso), editar o perfil (correção) e **excluir minha conta** (exclusão imediata, em cascata).
+- Aviso de privacidade acessível no login, no cadastro e na área da conta. O e-mail de contato aparece se `VITE_CONTATO_PRIVACIDADE` estiver definido na publicação do painel.
 
 ## API
 
@@ -43,6 +54,8 @@ npm test        # testes automatizados
 | `GET /auth/eu` | Dados de quem está logado. Cabeçalho: `Authorization: Bearer <token>` |
 | `GET /catalogo` | Lista pública das tecnologias que podem ser marcadas no perfil (`id`, `nome`, `categoria`) |
 | `GET /perfil` | Perfil de quem está logado (vazio se ainda não preencheu). Exige login |
+| `GET /conta/dados` | Baixa tudo o que o sistema guarda sobre quem está logado (conta, perfil, candidaturas). Exige login |
+| `DELETE /conta` | Exclui a conta, o perfil e as candidaturas. Corpo: `{ "senha" }` (confirmação). Exige login |
 | `PUT /perfil` | Salva o perfil. Corpo: `{ "habilidades": ["react", "sql"], "formatura": "2028-01" ou null, "nivelIngles": "basico" \| "intermediario" \| "avancado" \| "fluente", "modalidades": ["presencial", "hibrido", "remoto"] }`. Exige login |
 | `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas com a nota calculada para o perfil de quem está logado, da maior para a menor. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100. Exige login |
 | `PATCH /vagas/:id/status` | Atualiza o status da candidatura de quem está logado. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`). Exige login |

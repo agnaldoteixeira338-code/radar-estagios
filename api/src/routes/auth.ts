@@ -1,6 +1,5 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
-import { exigirLogin } from '../auth/middleware';
 import { conferirSenha, gerarHashSenha, gerarToken, HASH_FALSO } from '../auth/seguranca';
 import type { UsuariosRepositorio } from '../auth/tipos';
 import { validarCadastro, validarLogin } from '../auth/validacao';
@@ -13,7 +12,7 @@ export interface OpcoesAuth {
   custoBcrypt?: number;
 }
 
-export function criarAuthRouter(usuarios: UsuariosRepositorio, opcoes: OpcoesAuth) {
+export function criarAuthRouter(usuarios: UsuariosRepositorio, autenticar: RequestHandler, opcoes: OpcoesAuth) {
   const router = Router();
 
   // Bloqueia quem tenta muitas senhas seguidas (ataque de força bruta).
@@ -64,13 +63,8 @@ export function criarAuthRouter(usuarios: UsuariosRepositorio, opcoes: OpcoesAut
   });
 
   // GET /auth/eu -> dados de quem está logado
-  router.get('/eu', exigirLogin(opcoes.segredoJwt), async (req, res) => {
-    const usuario = await usuarios.buscarPorId(req.usuarioId!);
-    if (!usuario) {
-      res.status(401).json({ erro: 'Faça login para continuar' });
-      return;
-    }
-    res.json(usuario);
+  router.get('/eu', autenticar, async (req, res) => {
+    res.json(await usuarios.buscarPorId(req.usuarioId!));
   });
 
   return router;

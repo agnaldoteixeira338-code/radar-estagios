@@ -37,4 +37,15 @@ export interface VagasRepositorio {
   listar(usuarioId: number, filtros: { modalidade?: Modalidade }): Promise<VagaDoBanco[]>;
   // Devolve false se a vaga não existir.
   salvarStatus(usuarioId: number, vagaId: number, status: Status): Promise<boolean>;
+  // Candidaturas marcadas pela pessoa (para o "baixar meus dados").
+  listarCandidaturas(usuarioId: number): Promise<Candidatura[]>;
+}
+
+export interface Candidatura {
+  vagaId: number;
+  titulo: string;
+  empresa: string;
+  link: string;
+  status: Status;
+  atualizadoEm: string; // ISO 8601
 }

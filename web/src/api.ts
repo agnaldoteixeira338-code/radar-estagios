@@ -76,6 +76,7 @@ async function requisitar<T>(caminho: string, opcoes: { metodo?: string; corpo?:
     const corpo = await resposta.json().catch(() => null)
     throw new ErroApi(corpo?.erro ?? `Erro ${resposta.status} ao falar com o servidor`, resposta.status)
   }
+  if (resposta.status === 204) return undefined as T // "sem conteúdo" (ex.: conta excluída)
   return resposta.json() as Promise<T>
 }
 
@@ -107,6 +108,22 @@ export function salvarPerfil(perfil: Perfil, token: string): Promise<Perfil> {
 // Perfil "vazio" = a pessoa ainda não informou nada que influencie a nota.
 export function perfilVazio(perfil: Perfil): boolean {
   return perfil.habilidades.length === 0 && perfil.formatura === null
+}
+
+// Baixa o arquivo com todos os dados da pessoa (direito de acesso da LGPD).
+export async function baixarMeusDados(token: string): Promise<void> {
+  const dados = await requisitar<unknown>('/conta/dados', { token })
+  const arquivo = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(arquivo)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'meus-dados-radar-de-estagios.json'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export function excluirConta(senha: string, token: string): Promise<void> {
+  return requisitar('/conta', { metodo: 'DELETE', corpo: { senha }, token })
 }
 
 export async function listarVagas(token: string | null): Promise<Vaga[]> {

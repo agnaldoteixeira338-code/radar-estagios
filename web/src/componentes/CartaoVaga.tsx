@@ -1,5 +1,5 @@
 import type { Status, Vaga } from '../api'
-import { faixaDaNota, ROTULO_MODALIDADE, ROTULO_STATUS } from '../rotulos'
+import { faixaDaNota, linkSeguro, ROTULO_MODALIDADE, ROTULO_STATUS } from '../rotulos'
 
 interface Props {
   vaga: Vaga
@@ -76,9 +76,13 @@ export function CartaoVaga({ vaga, aoMudarStatus }: Props) {
             ))}
           </select>
         )}
-        <a href={vaga.link} target="_blank" rel="noreferrer">
-          Abrir vaga ↗
-        </a>
+        {linkSeguro(vaga.link) ? (
+          <a href={linkSeguro(vaga.link)!} target="_blank" rel="noopener noreferrer">
+            Abrir vaga ↗
+          </a>
+        ) : (
+          <span className="sutil">Link indisponível</span>
+        )}
       </div>
     </article>
   )

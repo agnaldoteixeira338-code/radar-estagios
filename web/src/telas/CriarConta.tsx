@@ -5,9 +5,10 @@ import { SENHA_MINIMO, validarNovaConta } from './validacao'
 interface Props {
   aoCriarConta: (sessao: Sessao) => void
   irParaEntrar: () => void
+  verPrivacidade: () => void
 }
 
-export function CriarConta({ aoCriarConta, irParaEntrar }: Props) {
+export function CriarConta({ aoCriarConta, irParaEntrar, verPrivacidade }: Props) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
@@ -67,6 +68,14 @@ export function CriarConta({ aoCriarConta, irParaEntrar }: Props) {
             {erro}
           </p>
         )}
+
+        <p className="dica">
+          Ao criar a conta, você concorda com o{' '}
+          <button type="button" className="link" onClick={verPrivacidade}>
+            Aviso de privacidade
+          </button>
+          .
+        </p>
 
         <button type="submit" className="botao-principal" disabled={enviando}>
           {enviando ? 'Criando conta…' : 'Criar conta'}

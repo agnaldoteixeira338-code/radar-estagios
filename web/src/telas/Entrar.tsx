@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { entrar, type Sessao } from '../api'
 
 interface Props {
+  aviso?: string
   aoEntrar: (sessao: Sessao) => void
   irParaCriarConta: () => void
+  verPrivacidade: () => void
 }
 
-export function Entrar({ aoEntrar, irParaCriarConta }: Props) {
+export function Entrar({ aviso, aoEntrar, irParaCriarConta, verPrivacidade }: Props) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -34,6 +36,11 @@ export function Entrar({ aoEntrar, irParaCriarConta }: Props) {
       <form className="cartao-acesso" onSubmit={enviar} noValidate>
         <h1>Radar de Estágios</h1>
         <p className="sutil">Entre para ver as vagas mais compatíveis com você.</p>
+        {aviso && (
+          <p className="aviso-sucesso" role="status">
+            {aviso}
+          </p>
+        )}
 
         <label>
           E-mail
@@ -58,6 +65,11 @@ export function Entrar({ aoEntrar, irParaCriarConta }: Props) {
           Ainda não tem conta?{' '}
           <button type="button" className="link" onClick={irParaCriarConta}>
             Criar conta
+          </button>
+        </p>
+        <p className="troca-tela">
+          <button type="button" className="link link-discreto" onClick={verPrivacidade}>
+            Aviso de privacidade
           </button>
         </p>
       </form>

@@ -88,6 +88,14 @@ def buscar_vagas(
     return vagas
 
 
+def link_seguro(valor: Any) -> str | None:
+    """Aceita só links http(s). Um link "javascript:..." vindo da fonte poderia executar código no navegador."""
+    texto = _texto_ou_none(valor)
+    if texto and re.match(r"^https?://[^\s]+$", texto, re.IGNORECASE):
+        return texto
+    return None
+
+
 def _texto_ou_none(valor: Any) -> str | None:
     if valor is None:
         return None
@@ -108,7 +116,7 @@ def normalizar(bruta: dict[str, Any]) -> dict[str, Any]:
         "cidade": _texto_ou_none(bruta.get("city")),
         "estado": UFS.get(estado, estado) if estado else None,
         "modalidade": MODALIDADES.get(bruta.get("workplaceType") or ""),
-        "link": str(bruta["jobUrl"]),
+        "link": link_seguro(bruta.get("jobUrl")),  # None = vaga descartada pelo coletor
         "descricao": _texto_ou_none(bruta.get("description")),
         "publicada_em": publicada[:10] if publicada else None,  # "2026-09-28T14:26:25Z" -> "2026-09-28"
     }

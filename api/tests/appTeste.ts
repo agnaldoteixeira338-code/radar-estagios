@@ -8,6 +8,7 @@ export const SEGREDO_TESTE = 'segredo-de-teste-com-mais-de-32-caracteres!!';
 // Repositório de usuários na memória, sem banco.
 export function criarUsuariosFalso() {
   const usuarios: UsuarioComSenha[] = [];
+  let proximoId = 0; // como no banco: ids nunca são reaproveitados, mesmo após excluir
   const repositorio: UsuariosRepositorio = {
     async buscarPorEmail(email) {
       return usuarios.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null;
@@ -16,9 +17,14 @@ export function criarUsuariosFalso() {
       const u = usuarios.find((x) => x.id === id);
       return u ? { id: u.id, nome: u.nome, email: u.email } : null;
     },
+    async excluir(id) {
+      const i = usuarios.findIndex((u) => u.id === id);
+      if (i >= 0) usuarios.splice(i, 1);
+    },
     async criar({ nome, email, senhaHash }) {
       if (usuarios.some((u) => u.email.toLowerCase() === email.toLowerCase())) return null;
-      const novo: UsuarioComSenha = { id: usuarios.length + 1, nome, email, senhaHash };
+      proximoId += 1;
+      const novo: UsuarioComSenha = { id: proximoId, nome, email, senhaHash };
       usuarios.push(novo);
       const publico: Usuario = { id: novo.id, nome, email };
       return publico;
@@ -50,6 +56,7 @@ export function criarAppTeste(sobrescrever: Partial<Dependencias> = {}) {
     perfisRepositorio: criarPerfisFalso().repositorio,
     segredoJwt: SEGREDO_TESTE,
     limiteTentativasLogin: 1000,
+    limiteGeralRequisicoes: 100000,
     custoBcrypt: 4, // mínimo do bcrypt: deixa os testes rápidos (produção usa 12)
     ...sobrescrever,
   });
