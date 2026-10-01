@@ -1,5 +1,7 @@
 from urllib.parse import parse_qs, urlsplit
 
+import certifi
+
 from coletor.banco import preparar_url
 
 
@@ -7,12 +9,12 @@ def parametros(url):
     return {chave: valores[0] for chave, valores in parse_qs(urlsplit(url).query).items()}
 
 
-def test_verify_full_ganha_certificados_do_sistema():
+def test_verify_full_ganha_certificados_do_certifi():
     url = preparar_url("postgresql://u:s@host/db?sslmode=verify-full&channel_binding=require")
     assert parametros(url) == {
         "sslmode": "verify-full",
         "channel_binding": "require",
-        "sslrootcert": "system",
+        "sslrootcert": certifi.where(),
     }
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Iterable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+import certifi
 import psycopg
 
 SQL_SALVAR = """
@@ -31,12 +32,13 @@ def preparar_url(url: str) -> str:
     """Ajusta a URL para o psycopg.
 
     Com sslmode=verify-full, o psycopg precisa saber onde estão os certificados confiáveis.
-    "sslrootcert=system" usa os certificados do próprio sistema operacional.
+    Usa o pacote de certificados do certifi, que funciona igual em Windows, Linux e macOS
+    (o "sslrootcert=system" do PostgreSQL não encontra os certificados no Windows).
     """
     partes = urlsplit(url)
     parametros = dict(parse_qsl(partes.query))
     if parametros.get("sslmode") == "verify-full" and "sslrootcert" not in parametros:
-        parametros["sslrootcert"] = "system"
+        parametros["sslrootcert"] = certifi.where()
     return urlunsplit(partes._replace(query=urlencode(parametros)))
 
 
