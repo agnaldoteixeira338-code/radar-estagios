@@ -1,0 +1,9 @@
+[project]
+name = "radar-estagios-coletor"
+version = "0.1.0"
+description = "Coleta vagas de estágio da Gupy e salva no banco do Radar de Estágios"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

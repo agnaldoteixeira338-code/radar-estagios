@@ -9,19 +9,44 @@ Sistema que coleta vagas de estágio automaticamente, calcula a compatibilidade 
 ```
 radar-estagios/
   api/       → API REST em Node.js + TypeScript + Express
-  coletor/   → coletor de vagas em Python (em breve)
+  coletor/   → coletor de vagas em Python (Gupy → PostgreSQL)
   web/       → painel em React (em breve)
 ```
 
-## Rodando a API
+## Configuração
+
+Copie `api/.env.example` para `api/.env` e preencha `DATABASE_URL` com a string de conexão do seu PostgreSQL (ex.: Neon). O coletor reaproveita esse mesmo arquivo.
+
+## API
 
 ```bash
 cd api
 npm install
-npm run dev     # http://localhost:4000/health
+npm run migrar  # cria as tabelas no banco
+npm run dev     # http://localhost:4000
 npm test        # testes automatizados
 ```
 
+| Rota | Descrição |
+|---|---|
+| `GET /health` | Verifica se a API está no ar |
+| `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas, das mais compatíveis para as menos. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100 |
+
+## Coletor
+
+Busca estágios no estado de São Paulo no portal público da Gupy, mantém só as vagas de TI (filtro pelo título) e salva no banco sem duplicar.
+
+```bash
+cd coletor
+python -m venv .venv
+.venv\Scripts\activate            # Windows (Linux/macOS: source .venv/bin/activate)
+pip install -r requirements-dev.txt
+python -m coletor                  # coleta e salva as vagas
+pytest                             # testes automatizados
+```
+
+> O coletor usa o endereço interno que o site portal.gupy.io usa para listar vagas. Não é uma API oficial documentada e pode mudar. As requisições têm pausa entre si para não sobrecarregar o servidor.
+
 ## Tecnologias
 
-Node.js · TypeScript · Express · Jest · Supertest · PostgreSQL (Neon) · Python · React · n8n
+Node.js · TypeScript · Express · Jest · Supertest · PostgreSQL (Neon) · Python · pytest · React · n8n
