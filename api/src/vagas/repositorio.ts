@@ -18,7 +18,12 @@ export function criarVagasRepositorio(pool: Pool): VagasRepositorio {
                 modalidade,
                 link,
                 TO_CHAR(publicada_em, 'YYYY-MM-DD') AS "publicadaEm",
-                nota_compatibilidade AS "notaCompatibilidade"
+                nota_compatibilidade AS "notaCompatibilidade",
+                habilidades_encontradas AS "habilidadesEncontradas",
+                requisitos_faltando     AS "requisitosFaltando",
+                diferenciais_faltando   AS "diferenciaisFaltando",
+                alertas,
+                motivo_eliminacao       AS "motivoEliminacao"
            FROM vagas
           WHERE ($1::text IS NULL OR modalidade = $1)
           ORDER BY nota_compatibilidade DESC NULLS LAST, publicada_em DESC NULLS LAST, id DESC

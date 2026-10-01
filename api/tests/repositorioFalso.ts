@@ -28,6 +28,11 @@ export function vagaExemplo(sobrescrever: Partial<Vaga> = {}): Vaga {
     link: 'https://exemplo.gupy.io/jobs/123',
     publicadaEm: '2026-09-30',
     notaCompatibilidade: 85,
+    habilidadesEncontradas: ['React', 'Node.js'],
+    requisitosFaltando: [],
+    diferenciaisFaltando: ['Docker'],
+    alertas: [],
+    motivoEliminacao: null,
     ...sobrescrever,
   };
 }

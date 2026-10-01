@@ -42,6 +42,33 @@ def preparar_url(url: str) -> str:
     return urlunsplit(partes._replace(query=urlencode(parametros)))
 
 
+SQL_SALVAR_AVALIACAO = """
+UPDATE vagas SET
+    nota_compatibilidade    = %(nota)s,
+    habilidades_encontradas = %(habilidades)s,
+    requisitos_faltando     = %(lacunas_obrigatorias)s,
+    diferenciais_faltando   = %(lacunas_diferenciais)s,
+    alertas                 = %(alertas)s,
+    motivo_eliminacao       = %(motivo_eliminacao)s,
+    avaliada_em             = NOW()
+WHERE id = %(id)s
+"""
+
+
+def avaliar_vagas(conexao: psycopg.Connection, avaliar) -> int:
+    """Recalcula a nota de todas as vagas com a função `avaliar(titulo, descricao)`.
+
+    A função chega por parâmetro para que o método de avaliação possa ser trocado
+    (hoje regras; no futuro, uma IA) sem mudar esta parte.
+    """
+    with conexao.transaction(), conexao.cursor() as cursor:
+        vagas = cursor.execute("SELECT id, titulo, descricao FROM vagas").fetchall()
+        for id_vaga, titulo, descricao in vagas:
+            avaliacao = avaliar(titulo, descricao)
+            cursor.execute(SQL_SALVAR_AVALIACAO, {"id": id_vaga, **vars(avaliacao)})
+    return len(vagas)
+
+
 def salvar_vagas(conexao: psycopg.Connection, vagas: Iterable[dict[str, Any]]) -> tuple[int, int]:
     """Insere vagas novas e atualiza as existentes. Devolve (inseridas, atualizadas)."""
     inseridas = atualizadas = 0

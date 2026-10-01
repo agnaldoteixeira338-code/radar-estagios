@@ -13,6 +13,11 @@ export interface Vaga {
   link: string;
   publicadaEm: string | null; // data no formato AAAA-MM-DD
   notaCompatibilidade: number | null;
+  habilidadesEncontradas: string[]; // suas habilidades que a vaga pede
+  requisitosFaltando: string[]; // obrigatórios que você ainda não tem
+  diferenciaisFaltando: string[]; // diferenciais que você ainda não tem
+  alertas: string[];
+  motivoEliminacao: string | null;
 }
 
 export interface FiltrosVagas {

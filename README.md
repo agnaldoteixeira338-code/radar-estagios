@@ -45,6 +45,21 @@ python -m coletor                  # coleta e salva as vagas
 pytest                             # testes automatizados
 ```
 
+### Nota de compatibilidade (0 a 100)
+
+Depois de salvar, o coletor calcula a nota de cada vaga com regras transparentes (`coletor/coletor/compatibilidade.py`), a partir do perfil em `coletor/coletor/perfil.py`:
+
+| Regra | Pontos |
+|---|---|
+| Base | 40 |
+| Cada habilidade do perfil que a vaga pede (peso por habilidade) | até +50 |
+| Título de desenvolvimento/software/full stack (+10) ou dados (+5) | até +10 |
+| Cada requisito **obrigatório** que ainda não tenho | −8 (até −32) |
+| Exige inglês avançado/fluente | −15 |
+| Exige formatura em data incompatível com a minha | nota 0 (eliminada) |
+
+Requisitos que aparecem como **diferencial/desejável** não tiram pontos: só são listados. Cada vaga guarda o motivo da nota (habilidades encontradas, o que falta, alertas como "vaga afirmativa"), devolvido pela API. A função de avaliação é recebida por parâmetro, para poder ser trocada por uma IA no futuro sem mudar o resto.
+
 > O coletor usa o endereço interno que o site portal.gupy.io usa para listar vagas. Não é uma API oficial documentada e pode mudar. As requisições têm pausa entre si para não sobrecarregar o servidor.
 
 ## Tecnologias
