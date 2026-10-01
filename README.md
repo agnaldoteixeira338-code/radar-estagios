@@ -10,7 +10,7 @@ Sistema que coleta vagas de estágio automaticamente, calcula a compatibilidade 
 radar-estagios/
   api/       → API REST em Node.js + TypeScript + Express
   coletor/   → coletor de vagas em Python (Gupy → PostgreSQL)
-  web/       → painel em React (em breve)
+  web/       → painel em React + TypeScript (Vite)
 ```
 
 ## Configuração
@@ -31,6 +31,18 @@ npm test        # testes automatizados
 |---|---|
 | `GET /health` | Verifica se a API está no ar |
 | `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas, das mais compatíveis para as menos. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100 |
+| `PATCH /vagas/:id/status` | Atualiza o status da candidatura. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`) |
+
+## Painel
+
+Lista as vagas por nota de compatibilidade, com filtros por modalidade e nota mínima, o motivo de cada nota (habilidades, o que falta, alertas) e o status de cada candidatura, salvo no banco.
+
+```bash
+cd web
+npm install
+npm run dev     # http://localhost:5173 (a API precisa estar rodando na porta 4000)
+npm test        # testes dos componentes (Vitest + Testing Library)
+```
 
 ## Coletor
 
