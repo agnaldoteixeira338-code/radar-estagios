@@ -47,7 +47,16 @@ export interface Tecnologia {
   categoria: string
 }
 
-const BASE = '/api'
+// Endereço da API. Em desenvolvimento é "/api" (o Vite repassa para localhost:4000).
+// Na publicação vem de VITE_API_URL; aceita só o domínio (ex.: "radar-api.onrender.com"),
+// que é como o Render informa o endereço de outro serviço.
+export function enderecoDaApi(valor: string | undefined): string {
+  if (!valor) return '/api'
+  const semBarraFinal = valor.replace(/\/+$/, '')
+  return /^https?:\/\//.test(semBarraFinal) ? semBarraFinal : `https://${semBarraFinal}`
+}
+
+const BASE = enderecoDaApi(import.meta.env.VITE_API_URL as string | undefined)
 
 // Erro com o código HTTP, para quem chamou saber, por exemplo, se a sessão expirou (401).
 export class ErroApi extends Error {

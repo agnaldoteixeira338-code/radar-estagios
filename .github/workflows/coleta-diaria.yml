@@ -1,0 +1,35 @@
+# Coleta automática: busca as vagas novas na Gupy todo dia e salva no banco.
+# Precisa do segredo DATABASE_URL em Settings > Secrets and variables > Actions.
+name: Coleta diária de vagas
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC = 06:00 em Brasília
+  workflow_dispatch: # permite rodar na mão pela aba Actions
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coleta-diaria
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: coletor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: coletor/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Coletar vagas
+        run: python -m coletor
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

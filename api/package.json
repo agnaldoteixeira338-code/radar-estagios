@@ -2,7 +2,8 @@
   "name": "radar-estagios-api",
   "version": "0.1.0",
   "private": true,
-  "description": "API do Radar de Estágios: vagas, filtros e compatibilidade com o currículo",
+  "engines": { "node": ">=22" },
+  "description": "API do Radar de EstÃ¡gios: vagas, filtros e compatibilidade com o currÃ­culo",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

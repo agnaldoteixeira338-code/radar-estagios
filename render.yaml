@@ -1,0 +1,63 @@
+# Receita de publicação no Render (Blueprint): cria a API e o painel, já ligados um ao outro.
+# No Render: New > Blueprint > escolha este repositório. Ele vai pedir só os valores marcados com "sync: false".
+services:
+  # API (Node.js + TypeScript)
+  - type: web
+    name: radar-estagios-api
+    runtime: node
+    plan: free
+    rootDir: api
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # String de conexão do Neon (cole no painel do Render; nunca vai para o código).
+      - key: DATABASE_URL
+        sync: false
+      # Segredo dos tokens de login: o próprio Render gera um valor aleatório e forte.
+      - key: JWT_SECRET
+        generateValue: true
+      # O Render fica na frente da API (proxy): necessário para o limite por IP ver o IP real.
+      - key: PROXIES_CONFIAVEIS
+        value: "1"
+      # Só o painel publicado pode chamar a API pelo navegador.
+      - key: CORS_ORIGENS
+        fromService:
+          type: web
+          name: radar-estagios
+          property: host
+
+  # Painel (React + Vite, site estático)
+  - type: web
+    name: radar-estagios
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: radar-estagios-api
+          property: host
+      # Opcional: e-mail de contato exibido no aviso de privacidade.
+      - key: VITE_CONTATO_PRIVACIDADE
+        sync: false
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=()"
