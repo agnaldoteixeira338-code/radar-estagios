@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { criarApp } from '../src/app';
+import { criarAppTeste as criarApp } from './appTeste';
 import { criarRepositorioFalso } from './repositorioFalso';
 
 describe('GET /health', () => {

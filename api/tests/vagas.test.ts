@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { criarApp } from '../src/app';
+import { criarAppTeste as criarApp } from './appTeste';
 import type { VagasRepositorio } from '../src/vagas/tipos';
 import { criarRepositorioFalso, vagaExemplo } from './repositorioFalso';
 

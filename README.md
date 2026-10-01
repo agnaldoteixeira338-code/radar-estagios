@@ -15,7 +15,15 @@ radar-estagios/
 
 ## Configuração
 
-Copie `api/.env.example` para `api/.env` e preencha `DATABASE_URL` com a string de conexão do seu PostgreSQL (ex.: Neon). O coletor reaproveita esse mesmo arquivo.
+Copie `api/.env.example` para `api/.env` e preencha `DATABASE_URL` com a string de conexão do seu PostgreSQL (ex.: Neon) e `JWT_SECRET` com um segredo aleatório de pelo menos 32 caracteres (o comando para gerar está no próprio arquivo). O coletor reaproveita esse mesmo arquivo.
+
+### Segurança das contas
+
+- Senhas guardadas só como hash bcrypt (custo 12); nunca aparecem nas respostas.
+- Login devolve um token JWT (HS256, validade de 7 dias); tokens adulterados, vencidos ou sem assinatura são recusados.
+- Mesma resposta e tempo parecido para "senha errada" e "e-mail não cadastrado", para não revelar quem tem conta.
+- Limite de 10 tentativas de login/cadastro por IP a cada 15 minutos.
+- A API não liga sem um `JWT_SECRET` forte configurado.
 
 ## API
 
@@ -30,6 +38,9 @@ npm test        # testes automatizados
 | Rota | Descrição |
 |---|---|
 | `GET /health` | Verifica se a API está no ar |
+| `POST /auth/cadastro` | Cria uma conta. Corpo: `{ "nome", "email", "senha" }` (senha com 8+ caracteres). Devolve `{ token, usuario }` |
+| `POST /auth/login` | Entra na conta. Corpo: `{ "email", "senha" }`. Devolve `{ token, usuario }` |
+| `GET /auth/eu` | Dados de quem está logado. Cabeçalho: `Authorization: Bearer <token>` |
 | `GET /vagas?modalidade=presencial&limite=20` | Lista as vagas, das mais compatíveis para as menos. `modalidade`: `presencial`, `hibrido` ou `remoto`; `limite`: 1 a 100 |
 | `PATCH /vagas/:id/status` | Atualiza o status da candidatura. Corpo: `{ "status": "enviada" }` (`pendente`, `enviada`, `entrevista`, `recusada` ou `sem_interesse`) |
 

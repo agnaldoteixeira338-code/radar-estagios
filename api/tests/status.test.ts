@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { criarApp } from '../src/app';
+import { criarAppTeste as criarApp } from './appTeste';
 import { criarRepositorioFalso, vagaExemplo } from './repositorioFalso';
 
 describe('PATCH /vagas/:id/status', () => {
