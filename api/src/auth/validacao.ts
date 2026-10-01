@@ -5,7 +5,7 @@ export const SENHA_MINIMO = 8;
 const SENHA_MAXIMO_BYTES = 72; // o bcrypt ignora o que passar de 72 bytes
 
 export interface DadosCadastro {
-  nome: string;
+  nome: string | null;
   email: string;
   senha: string;
 }
@@ -19,7 +19,9 @@ export function normalizarEmail(email: string): string {
 export function validarCadastro(corpo: unknown): Resultado<DadosCadastro> {
   const { nome, email, senha } = (corpo ?? {}) as Record<string, unknown>;
 
-  if (typeof nome !== 'string' || nome.trim().length < 2 || nome.trim().length > 80) {
+  // Nome é opcional; se vier, precisa ser válido.
+  const semNome = nome === undefined || nome === null || (typeof nome === 'string' && nome.trim() === '');
+  if (!semNome && (typeof nome !== 'string' || nome.trim().length < 2 || nome.trim().length > 80)) {
     return { ok: false, erro: 'nome deve ter entre 2 e 80 caracteres' };
   }
   if (typeof email !== 'string' || email.length > 254 || !EMAIL.test(email.trim())) {
@@ -31,7 +33,10 @@ export function validarCadastro(corpo: unknown): Resultado<DadosCadastro> {
   if (Buffer.byteLength(senha, 'utf8') > SENHA_MAXIMO_BYTES) {
     return { ok: false, erro: 'senha muito longa (máximo de 72 bytes)' };
   }
-  return { ok: true, dados: { nome: nome.trim(), email: normalizarEmail(email), senha } };
+  return {
+    ok: true,
+    dados: { nome: semNome ? null : (nome as string).trim(), email: normalizarEmail(email), senha },
+  };
 }
 
 export function validarLogin(corpo: unknown): Resultado<{ email: string; senha: string }> {

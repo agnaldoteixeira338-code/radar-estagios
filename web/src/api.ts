@@ -21,26 +21,66 @@ export interface Vaga {
   status: Status
 }
 
+export interface Usuario {
+  id: number
+  nome: string | null
+  email: string
+}
+
+export interface Sessao {
+  token: string
+  usuario: Usuario
+}
+
 const BASE = '/api'
 
-async function lerResposta<T>(resposta: Response): Promise<T> {
+// Erro com o código HTTP, para quem chamou saber, por exemplo, se a sessão expirou (401).
+export class ErroApi extends Error {
+  readonly status: number
+  constructor(mensagem: string, status: number) {
+    super(mensagem)
+    this.status = status
+  }
+}
+
+async function requisitar<T>(caminho: string, opcoes: { metodo?: string; corpo?: unknown; token?: string | null } = {}): Promise<T> {
+  let resposta: Response
+  try {
+    resposta = await fetch(`${BASE}${caminho}`, {
+      method: opcoes.metodo ?? 'GET',
+      headers: {
+        ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(opcoes.token ? { Authorization: `Bearer ${opcoes.token}` } : {}),
+      },
+      body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,
+    })
+  } catch {
+    throw new ErroApi('Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.', 0)
+  }
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => null)
-    throw new Error(corpo?.erro ?? `Erro ${resposta.status} ao falar com a API`)
+    throw new ErroApi(corpo?.erro ?? `Erro ${resposta.status} ao falar com o servidor`, resposta.status)
   }
   return resposta.json() as Promise<T>
 }
 
-export async function listarVagas(): Promise<Vaga[]> {
-  const dados = await lerResposta<{ vagas: Vaga[] }>(await fetch(`${BASE}/vagas?limite=100`))
+export function entrar(email: string, senha: string): Promise<Sessao> {
+  return requisitar('/auth/login', { metodo: 'POST', corpo: { email, senha } })
+}
+
+export function criarConta(email: string, senha: string): Promise<Sessao> {
+  return requisitar('/auth/cadastro', { metodo: 'POST', corpo: { email, senha } })
+}
+
+export function buscarUsuario(token: string): Promise<Usuario> {
+  return requisitar('/auth/eu', { token })
+}
+
+export async function listarVagas(token: string | null): Promise<Vaga[]> {
+  const dados = await requisitar<{ vagas: Vaga[] }>('/vagas?limite=100', { token })
   return dados.vagas
 }
 
-export async function atualizarStatus(id: number, status: Status): Promise<Vaga> {
-  const resposta = await fetch(`${BASE}/vagas/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
-  return lerResposta<Vaga>(resposta)
+export function atualizarStatus(id: number, status: Status, token: string | null): Promise<Vaga> {
+  return requisitar(`/vagas/${id}/status`, { metodo: 'PATCH', corpo: { status }, token })
 }

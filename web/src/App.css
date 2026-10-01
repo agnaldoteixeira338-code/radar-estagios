@@ -228,3 +228,143 @@
     align-items: center;
   }
 }
+
+/* Telas de acesso (entrar / criar conta) */
+.tela-acesso {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.cartao-acesso {
+  width: 100%;
+  max-width: 380px;
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cartao-acesso h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cartao-acesso .sutil {
+  margin: -8px 0 4px;
+}
+
+.cartao-acesso .campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cartao-acesso label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cartao-acesso input {
+  font: inherit;
+  font-weight: 400;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+.cartao-acesso input:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 1px;
+}
+
+.dica {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--texto-2);
+}
+
+.erro-campo {
+  background: var(--perigo-fundo);
+  color: var(--perigo);
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--raio);
+  margin: 0;
+}
+
+.botao-principal {
+  font: inherit;
+  font-weight: 600;
+  height: 42px;
+  border: none;
+  border-radius: var(--raio);
+  background: var(--destaque);
+  color: var(--cartao);
+  cursor: pointer;
+}
+
+.botao-principal:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.botao-principal:focus-visible,
+.link:focus-visible,
+.botao-secundario:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 2px;
+}
+
+.troca-tela {
+  font-size: 14px;
+  color: var(--texto-2);
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+.link {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--destaque);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Topo do painel: conta e botão sair */
+.conta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.botao-secundario {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.carregando-tela {
+  text-align: center;
+  margin-top: 40vh;
+}

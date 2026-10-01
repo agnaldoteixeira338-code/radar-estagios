@@ -38,7 +38,7 @@ npm test        # testes automatizados
 | Rota | Descrição |
 |---|---|
 | `GET /health` | Verifica se a API está no ar |
-| `POST /auth/cadastro` | Cria uma conta. Corpo: `{ "nome", "email", "senha" }` (senha com 8+ caracteres). Devolve `{ token, usuario }` |
+| `POST /auth/cadastro` | Cria uma conta. Corpo: `{ "email", "senha" }` (senha com 8+ caracteres; `nome` é opcional). Devolve `{ token, usuario }` |
 | `POST /auth/login` | Entra na conta. Corpo: `{ "email", "senha" }`. Devolve `{ token, usuario }` |
 | `GET /auth/eu` | Dados de quem está logado. Cabeçalho: `Authorization: Bearer <token>` |
 | `GET /catalogo` | Lista pública das tecnologias que podem ser marcadas no perfil (`id`, `nome`, `categoria`) |
@@ -49,7 +49,7 @@ npm test        # testes automatizados
 
 ## Painel
 
-Lista as vagas por nota de compatibilidade, com filtros por modalidade e nota mínima, o motivo de cada nota (habilidades, o que falta, alertas) e o status de cada candidatura, salvo no banco.
+Tela de login (e-mail e senha) e de criação de conta (e-mail, senha e confirmação). Depois de entrar, lista as vagas por nota de compatibilidade, com filtros por modalidade e nota mínima, o motivo de cada nota (habilidades, o que falta, alertas) e o status de cada candidatura, salvo no banco.
 
 ```bash
 cd web

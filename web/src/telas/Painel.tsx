@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { atualizarStatus, ErroApi, listarVagas, type Status, type Usuario, type Vaga } from '../api'
+import { CartaoVaga } from '../componentes/CartaoVaga'
+import { Filtros, type FiltroModalidade } from '../componentes/Filtros'
+import { Resumo } from '../componentes/Resumo'
+
+interface Props {
+  token: string
+  usuario: Usuario
+  aoSair: () => void
+}
+
+export function Painel({ token, usuario, aoSair }: Props) {
+  const [vagas, setVagas] = useState<Vaga[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [modalidade, setModalidade] = useState<FiltroModalidade>('todas')
+  const [notaMinima, setNotaMinima] = useState(40)
+
+  useEffect(() => {
+    let ativo = true // evita atualizar a tela se a pessoa sair antes da resposta chegar
+    listarVagas(token)
+      .then((lista) => ativo && setVagas(lista))
+      .catch((e: ErroApi) => {
+        if (!ativo) return
+        if (e.status === 401) aoSair() // sessão expirou
+        else setErro(`Não foi possível carregar as vagas. ${e.message}`)
+      })
+      .finally(() => ativo && setCarregando(false))
+    return () => {
+      ativo = false
+    }
+  }, [token, aoSair])
+
+  // Atualização "otimista": muda na tela na hora e, se a API falhar, volta ao valor anterior.
+  async function mudarStatus(id: number, status: Status) {
+    const anterior = vagas.find((v) => v.id === id)?.status
+    setVagas((atuais) => atuais.map((v) => (v.id === id ? { ...v, status } : v)))
+    setErro(null)
+    try {
+      await atualizarStatus(id, status, token)
+    } catch (e) {
+      if (anterior) {
+        setVagas((atuais) => atuais.map((v) => (v.id === id ? { ...v, status: anterior } : v)))
+      }
+      if ((e as ErroApi).status === 401) aoSair()
+      else setErro(`Não foi possível salvar o status. ${(e as Error).message}`)
+    }
+  }
+
+  // Vagas eliminadas por regra só aparecem com a nota mínima em 0.
+  const visiveis = vagas.filter(
+    (v) =>
+      (modalidade === 'todas' || v.modalidade === modalidade) &&
+      (v.notaCompatibilidade ?? 0) >= notaMinima &&
+      (!v.motivoEliminacao || notaMinima === 0),
+  )
+
+  return (
+    <main className="painel">
+      <header className="topo">
+        <h1>Radar de Estágios</h1>
+        <div className="conta">
+          <span className="sutil">{usuario.email}</span>
+          <button type="button" className="botao-secundario" onClick={aoSair}>
+            Sair
+          </button>
+        </div>
+      </header>
+
+      {erro && (
+        <p className="erro" role="alert">
+          {erro}
+        </p>
+      )}
+
+      {carregando ? (
+        <p className="sutil">Carregando vagas…</p>
+      ) : (
+        <>
+          <Resumo vagas={vagas} />
+          <Filtros
+            modalidade={modalidade}
+            notaMinima={notaMinima}
+            aoMudarModalidade={setModalidade}
+            aoMudarNotaMinima={setNotaMinima}
+          />
+          <p className="sutil contagem">
+            Mostrando {visiveis.length} de {vagas.length}
+          </p>
+          {visiveis.length === 0 ? (
+            <p className="sutil">Nenhuma vaga com esses filtros. Tente baixar a nota mínima.</p>
+          ) : (
+            <section aria-label="Vagas">
+              {visiveis.map((vaga) => (
+                <CartaoVaga key={vaga.id} vaga={vaga} aoMudarStatus={mudarStatus} />
+              ))}
+            </section>
+          )}
+        </>
+      )}
+    </main>
+  )
+}

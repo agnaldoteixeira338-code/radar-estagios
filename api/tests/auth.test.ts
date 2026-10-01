@@ -45,14 +45,34 @@ describe('POST /auth/cadastro', () => {
     expect(resposta.status).toBe(409);
   });
 
+  it('aceita cadastro só com e-mail e senha (nome é opcional)', async () => {
+    const { app } = appComUsuarios();
+
+    const resposta = await request(app)
+      .post('/auth/cadastro')
+      .send({ email: 'sem-nome@exemplo.com', senha: 'senha-forte-123' });
+
+    expect(resposta.status).toBe(201);
+    expect(resposta.body.usuario).toEqual({ id: 1, nome: null, email: 'sem-nome@exemplo.com' });
+  });
+
+  it('trata nome vazio como "sem nome"', async () => {
+    const { app } = appComUsuarios();
+
+    const resposta = await request(app).post('/auth/cadastro').send({ ...CADASTRO, nome: '   ' });
+
+    expect(resposta.status).toBe(201);
+    expect(resposta.body.usuario.nome).toBeNull();
+  });
+
   it.each([
     [{ ...CADASTRO, nome: 'A' }, /nome/],
-    [{ ...CADASTRO, nome: undefined }, /nome/],
+    [{ ...CADASTRO, nome: 123 }, /nome/],
     [{ ...CADASTRO, email: 'sem-arroba' }, /email/],
     [{ ...CADASTRO, email: 123 }, /email/],
     [{ ...CADASTRO, senha: 'curta' }, /senha/],
     [{ ...CADASTRO, senha: 'é'.repeat(40) }, /senha/], // 80 bytes: passa do limite do bcrypt
-    [{}, /nome/],
+    [{}, /email/],
   ])('recusa dados inválidos %p com 400', async (corpo, mensagem) => {
     const { app } = appComUsuarios();
 

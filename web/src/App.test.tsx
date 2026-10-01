@@ -1,8 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Vaga } from './api'
 import App from './App'
+import { validarNovaConta } from './telas/validacao'
+
+const CHAVE_TOKEN = 'radar-estagios:token'
+const USUARIO = { id: 1, nome: null, email: 'agnaldo@exemplo.com' }
 
 function vaga(sobrescrever: Partial<Vaga>): Vaga {
   return {
@@ -32,21 +36,233 @@ const VAGAS: Vaga[] = [
   vaga({ id: 4, titulo: 'Vaga Eliminada', notaCompatibilidade: 0, motivoEliminacao: 'Exige formatura a partir de 12/2028' }),
 ]
 
-function respostaJson(corpo: unknown, status = 200) {
+function json(corpo: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
-// Simula a API: GET devolve as vagas; PATCH responde com o que for passado.
-function simularApi(respostaPatch: (url: string, corpo: string) => Promise<Response> = (_u, c) => respostaJson(JSON.parse(c))) {
-  const vagas = structuredClone(VAGAS)
+type Rota = (url: string, init?: RequestInit) => Promise<Response> | undefined
+
+// Simula a API. Cada teste pode trocar o comportamento de uma rota; o resto usa o padrão.
+function simularApi(sobrescrever: Record<string, Rota> = {}) {
+  const padrao: Record<string, Rota> = {
+    'GET /api/auth/eu': () => json(USUARIO),
+    'POST /api/auth/login': () => json({ token: 'token-novo', usuario: USUARIO }),
+    'POST /api/auth/cadastro': () => json({ token: 'token-novo', usuario: USUARIO }, 201),
+    'GET /api/vagas': () => json({ total: VAGAS.length, vagas: structuredClone(VAGAS) }),
+    'PATCH /api/vagas': (_u, init) => json({ ...VAGAS[0], ...JSON.parse(String(init?.body)) }),
+  }
+  const rotas = { ...padrao, ...sobrescrever }
   return vi.spyOn(globalThis, 'fetch').mockImplementation((entrada, init) => {
     const url = String(entrada)
-    if (init?.method === 'PATCH') return respostaPatch(url, String(init.body))
-    return respostaJson({ total: vagas.length, vagas })
+    const metodo = init?.method ?? 'GET'
+    const chave = Object.keys(rotas).find((k) => {
+      const [m, caminho] = k.split(' ')
+      return m === metodo && url.startsWith(caminho)
+    })
+    const resposta = chave ? rotas[chave](url, init) : undefined
+    return resposta ?? json({ erro: `rota não simulada: ${metodo} ${url}` }, 500)
   })
 }
 
+function logado() {
+  localStorage.setItem(CHAVE_TOKEN, 'token-salvo')
+}
+
+beforeEach(() => localStorage.clear())
+
+describe('Entrar', () => {
+  it('sem sessão, mostra a tela de login com e-mail, senha e o link para criar conta', () => {
+    simularApi()
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: 'Radar de Estágios' })).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Criar conta' })).toBeInTheDocument()
+  })
+
+  it('entra, guarda a sessão e abre o painel com o e-mail da pessoa', async () => {
+    const fetchSimulado = simularApi()
+    render(<App />)
+
+    await userEvent.type(screen.getByLabelText('E-mail'), ' agnaldo@exemplo.com ')
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha-forte-123')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByText('agnaldo@exemplo.com')).toBeInTheDocument()
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBe('token-novo')
+    expect(fetchSimulado).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({ body: JSON.stringify({ email: 'agnaldo@exemplo.com', senha: 'senha-forte-123' }) }),
+    )
+  })
+
+  it('mostra o erro da API quando e-mail ou senha estão errados', async () => {
+    simularApi({ 'POST /api/auth/login': () => json({ erro: 'E-mail ou senha incorretos' }, 401) })
+    render(<App />)
+
+    await userEvent.type(screen.getByLabelText('E-mail'), 'agnaldo@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'errada-123')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha incorretos')
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBeNull()
+  })
+
+  it('pede para preencher e-mail e senha sem chamar a API', async () => {
+    const fetchSimulado = simularApi()
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Preencha e-mail e senha.')
+    expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+
+  it('avisa quando o servidor está fora do ar', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+    render(<App />)
+
+    await userEvent.type(screen.getByLabelText('E-mail'), 'agnaldo@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha-forte-123')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível conectar ao servidor')
+  })
+})
+
+describe('Criar conta', () => {
+  async function abrirCriarConta() {
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+  }
+
+  it('pede só e-mail, senha e confirmar senha', async () => {
+    simularApi()
+    await abrirCriarConta()
+
+    expect(screen.getByRole('heading', { name: 'Criar conta' })).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
+    expect(screen.getByLabelText('Confirmar senha')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/nome/i)).not.toBeInTheDocument()
+    // A dica de tamanho da senha fica ligada ao campo, sem fazer parte do nome dele.
+    expect(screen.getByLabelText('Senha')).toHaveAccessibleDescription('Mínimo de 8 caracteres.')
+  })
+
+  it.each([
+    ['sem-arroba', 'senha-forte-123', 'senha-forte-123', 'Digite um e-mail válido.'],
+    ['a@b.com', 'curta', 'curta', 'A senha precisa ter pelo menos 8 caracteres.'],
+    ['a@b.com', 'senha-forte-123', 'senha-diferente', 'As senhas não são iguais.'],
+  ])('valida antes de enviar: %s / %s / %s', (email, senha, confirmacao, mensagem) => {
+    expect(validarNovaConta(email, senha, confirmacao)).toBe(mensagem)
+  })
+
+  it('não chama a API quando as senhas são diferentes', async () => {
+    const fetchSimulado = simularApi()
+    await abrirCriarConta()
+
+    await userEvent.type(screen.getByLabelText('E-mail'), 'novo@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha-forte-123')
+    await userEvent.type(screen.getByLabelText('Confirmar senha'), 'senha-forte-124')
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('As senhas não são iguais.')
+    expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+
+  it('cria a conta enviando só e-mail e senha e já entra no painel', async () => {
+    const fetchSimulado = simularApi()
+    await abrirCriarConta()
+
+    await userEvent.type(screen.getByLabelText('E-mail'), 'novo@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha-forte-123')
+    await userEvent.type(screen.getByLabelText('Confirmar senha'), 'senha-forte-123')
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(await screen.findByRole('button', { name: 'Sair' })).toBeInTheDocument()
+    expect(fetchSimulado).toHaveBeenCalledWith(
+      '/api/auth/cadastro',
+      expect.objectContaining({ body: JSON.stringify({ email: 'novo@exemplo.com', senha: 'senha-forte-123' }) }),
+    )
+  })
+
+  it('mostra quando o e-mail já tem conta', async () => {
+    simularApi({ 'POST /api/auth/cadastro': () => json({ erro: 'Já existe uma conta com este e-mail' }, 409) })
+    await abrirCriarConta()
+
+    await userEvent.type(screen.getByLabelText('E-mail'), 'agnaldo@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'senha-forte-123')
+    await userEvent.type(screen.getByLabelText('Confirmar senha'), 'senha-forte-123')
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Já existe uma conta com este e-mail')
+  })
+
+  it('volta para a tela de login pelo link "Entrar"', async () => {
+    simularApi()
+    await abrirCriarConta()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(screen.getByRole('heading', { name: 'Radar de Estágios' })).toBeInTheDocument()
+  })
+})
+
+describe('Sessão', () => {
+  it('com sessão salva e válida, abre direto o painel', async () => {
+    logado()
+    simularApi()
+    render(<App />)
+
+    expect(await screen.findByText('agnaldo@exemplo.com')).toBeInTheDocument()
+  })
+
+  it('com sessão vencida, apaga o token e mostra o login', async () => {
+    logado()
+    simularApi({ 'GET /api/auth/eu': () => json({ erro: 'Faça login para continuar' }, 401) })
+    render(<App />)
+
+    expect(await screen.findByLabelText('E-mail')).toBeInTheDocument()
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBeNull()
+  })
+
+  it('sem conexão, mantém a sessão e oferece tentar de novo', async () => {
+    logado()
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+    render(<App />)
+
+    expect(await screen.findByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument()
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBe('token-salvo')
+  })
+
+  it('"Sair" apaga a sessão e volta ao login', async () => {
+    logado()
+    simularApi()
+    render(<App />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sair' }))
+
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+    expect(localStorage.getItem(CHAVE_TOKEN)).toBeNull()
+  })
+
+  it('envia o token nas chamadas do painel', async () => {
+    logado()
+    const fetchSimulado = simularApi()
+    render(<App />)
+    await screen.findByText('Vaga Full Stack')
+
+    expect(fetchSimulado).toHaveBeenCalledWith(
+      '/api/vagas?limite=100',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-salvo' }) }),
+    )
+  })
+})
+
 describe('Painel', () => {
+  beforeEach(logado)
+
   it('mostra o resumo e as vagas com nota 40 ou mais, da maior para a menor', async () => {
     simularApi()
     render(<App />)
@@ -97,10 +313,7 @@ describe('Painel', () => {
     render(<App />)
     await screen.findByText('Vaga Full Stack')
 
-    await userEvent.selectOptions(
-      screen.getByRole('combobox', { name: 'Status da candidatura em Vaga Full Stack' }),
-      'enviada',
-    )
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Status da candidatura em Vaga Full Stack' }), 'enviada')
 
     expect(fetchSimulado).toHaveBeenCalledWith('/api/vagas/1/status', expect.objectContaining({ method: 'PATCH', body: '{"status":"enviada"}' }))
     expect(screen.getByRole('combobox', { name: 'Status da candidatura em Vaga Full Stack' })).toHaveValue('enviada')
@@ -109,7 +322,7 @@ describe('Painel', () => {
   })
 
   it('volta o status anterior e avisa quando a API falha ao salvar', async () => {
-    simularApi(() => respostaJson({ erro: 'Erro interno no servidor' }, 500))
+    simularApi({ 'PATCH /api/vagas': () => json({ erro: 'Erro interno no servidor' }, 500) })
     render(<App />)
     await screen.findByText('Vaga Full Stack')
 
@@ -121,9 +334,9 @@ describe('Painel', () => {
   })
 
   it('avisa quando não consegue carregar as vagas', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Failed to fetch'))
+    simularApi({ 'GET /api/vagas': () => json({ erro: 'Erro interno no servidor' }, 500) })
     render(<App />)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar as vagas. Failed to fetch')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar as vagas. Erro interno no servidor')
   })
 })

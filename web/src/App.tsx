@@ -1,85 +1,76 @@
-import { useEffect, useState } from 'react'
-import { atualizarStatus, listarVagas, type Status, type Vaga } from './api'
-import { CartaoVaga } from './componentes/CartaoVaga'
-import { Filtros, type FiltroModalidade } from './componentes/Filtros'
-import { Resumo } from './componentes/Resumo'
+import { useCallback, useEffect, useState } from 'react'
+import { buscarUsuario, ErroApi, type Sessao } from './api'
+import { apagarToken, lerToken, salvarToken } from './sessao'
+import { CriarConta } from './telas/CriarConta'
+import { Entrar } from './telas/Entrar'
+import { Painel } from './telas/Painel'
 import './App.css'
 
+type Estado =
+  | { tela: 'verificando' }
+  | { tela: 'entrar' }
+  | { tela: 'criar-conta' }
+  | { tela: 'painel'; sessao: Sessao }
+  | { tela: 'sem-conexao' }
+
 export default function App() {
-  const [vagas, setVagas] = useState<Vaga[]>([])
-  const [carregando, setCarregando] = useState(true)
-  const [erro, setErro] = useState<string | null>(null)
-  const [modalidade, setModalidade] = useState<FiltroModalidade>('todas')
-  const [notaMinima, setNotaMinima] = useState(40)
+  // Se há um token salvo, começa verificando se ele ainda vale; senão vai direto ao login.
+  const [estado, setEstado] = useState<Estado>(() => (lerToken() ? { tela: 'verificando' } : { tela: 'entrar' }))
+  const [tentativa, setTentativa] = useState(0)
 
   useEffect(() => {
-    listarVagas()
-      .then(setVagas)
-      .catch((e: Error) => setErro(`Não foi possível carregar as vagas. ${e.message}`))
-      .finally(() => setCarregando(false))
+    if (estado.tela !== 'verificando') return
+    const token = lerToken()
+    // Sem token, trata como sessão inválida (401) para cair no mesmo caminho de "pedir login".
+    const verificacao = token ? buscarUsuario(token) : Promise.reject(new ErroApi('Sem sessão', 401))
+    verificacao
+      .then((usuario) => setEstado({ tela: 'painel', sessao: { token: token!, usuario } }))
+      .catch((e: ErroApi) => {
+        if (e.status === 401) {
+          apagarToken() // token vencido ou inválido: pede login de novo
+          setEstado({ tela: 'entrar' })
+        } else {
+          setEstado({ tela: 'sem-conexao' })
+        }
+      })
+  }, [estado.tela, tentativa])
+
+  const iniciarSessao = useCallback((sessao: Sessao) => {
+    salvarToken(sessao.token)
+    setEstado({ tela: 'painel', sessao })
   }, [])
 
-  // Atualização "otimista": muda na tela na hora e, se a API falhar, volta ao valor anterior.
-  async function mudarStatus(id: number, status: Status) {
-    const anterior = vagas.find((v) => v.id === id)?.status
-    setVagas((atuais) => atuais.map((v) => (v.id === id ? { ...v, status } : v)))
-    setErro(null)
-    try {
-      await atualizarStatus(id, status)
-    } catch (e) {
-      if (anterior) {
-        setVagas((atuais) => atuais.map((v) => (v.id === id ? { ...v, status: anterior } : v)))
-      }
-      setErro(`Não foi possível salvar o status. ${(e as Error).message}`)
-    }
+  const sair = useCallback(() => {
+    apagarToken()
+    setEstado({ tela: 'entrar' })
+  }, [])
+
+  switch (estado.tela) {
+    case 'verificando':
+      return <p className="carregando-tela sutil">Carregando…</p>
+    case 'sem-conexao':
+      return (
+        <main className="tela-acesso">
+          <div className="cartao-acesso">
+            <p role="alert">Não foi possível conectar ao servidor.</p>
+            <button
+              type="button"
+              className="botao-principal"
+              onClick={() => {
+                setTentativa((t) => t + 1)
+                setEstado({ tela: 'verificando' })
+              }}
+            >
+              Tentar de novo
+            </button>
+          </div>
+        </main>
+      )
+    case 'entrar':
+      return <Entrar aoEntrar={iniciarSessao} irParaCriarConta={() => setEstado({ tela: 'criar-conta' })} />
+    case 'criar-conta':
+      return <CriarConta aoCriarConta={iniciarSessao} irParaEntrar={() => setEstado({ tela: 'entrar' })} />
+    case 'painel':
+      return <Painel token={estado.sessao.token} usuario={estado.sessao.usuario} aoSair={sair} />
   }
-
-  // Vagas eliminadas por regra só aparecem com a nota mínima em 0.
-  const visiveis = vagas.filter(
-    (v) =>
-      (modalidade === 'todas' || v.modalidade === modalidade) &&
-      (v.notaCompatibilidade ?? 0) >= notaMinima &&
-      (!v.motivoEliminacao || notaMinima === 0),
-  )
-
-  return (
-    <main className="painel">
-      <header className="topo">
-        <h1>Radar de Estágios</h1>
-        {!carregando && <span className="sutil">{vagas.length} vagas de TI no banco</span>}
-      </header>
-
-      {erro && (
-        <p className="erro" role="alert">
-          {erro}
-        </p>
-      )}
-
-      {carregando ? (
-        <p className="sutil">Carregando vagas…</p>
-      ) : (
-        <>
-          <Resumo vagas={vagas} />
-          <Filtros
-            modalidade={modalidade}
-            notaMinima={notaMinima}
-            aoMudarModalidade={setModalidade}
-            aoMudarNotaMinima={setNotaMinima}
-          />
-          <p className="sutil contagem">
-            Mostrando {visiveis.length} de {vagas.length}
-          </p>
-          {visiveis.length === 0 ? (
-            <p className="sutil">Nenhuma vaga com esses filtros. Tente baixar a nota mínima.</p>
-          ) : (
-            <section aria-label="Vagas">
-              {visiveis.map((vaga) => (
-                <CartaoVaga key={vaga.id} vaga={vaga} aoMudarStatus={mudarStatus} />
-              ))}
-            </section>
-          )}
-        </>
-      )}
-    </main>
-  )
 }
