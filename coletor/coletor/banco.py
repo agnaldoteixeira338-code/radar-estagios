@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Iterable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -26,6 +27,16 @@ RETURNING (xmax = 0) AS inserida
 """
 # "xmax = 0" é verdadeiro quando a linha acabou de ser inserida (e falso quando foi atualizada).
 # A nota de compatibilidade não é calculada aqui: a API calcula na hora, com o perfil de cada pessoa.
+
+
+def extrair_url(valor: str) -> str | None:
+    """Acha a URL do PostgreSQL no valor configurado.
+
+    Tolera erros comuns ao colar o segredo (no GitHub, por exemplo): o prefixo "DATABASE_URL=",
+    aspas, espaços e linhas extras como comentários. Devolve None se não houver URL válida.
+    """
+    achada = re.search(r"postgres(?:ql)?://[^\s'\"]+", valor)
+    return achada.group(0) if achada else None
 
 
 def preparar_url(url: str) -> str:

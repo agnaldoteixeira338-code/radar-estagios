@@ -9,7 +9,7 @@ from pathlib import Path
 import psycopg
 from dotenv import load_dotenv
 
-from .banco import preparar_url, salvar_vagas
+from .banco import extrair_url, preparar_url, salvar_vagas
 from .gupy import buscar_vagas, e_vaga_de_ti, normalizar
 
 TERMOS = [
@@ -33,9 +33,12 @@ def carregar_ambiente() -> str:
         if caminho.exists():
             load_dotenv(caminho)
             break
-    url = os.getenv("DATABASE_URL")
-    if not url:
+    valor = os.getenv("DATABASE_URL")
+    if not valor:
         sys.exit("DATABASE_URL não encontrada. Configure o arquivo api/.env.")
+    url = extrair_url(valor)
+    if url is None:  # a mensagem nunca mostra o valor: ele pode conter a senha do banco
+        sys.exit("DATABASE_URL não contém uma URL postgresql://. Confira o valor configurado.")
     return url
 
 
