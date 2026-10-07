@@ -23,11 +23,10 @@ services:
       - key: PROXIES_CONFIAVEIS
         value: "1"
       # Só o painel publicado pode chamar a API pelo navegador.
+      # Endereço público fixo: o "fromService ... property: host" do Render devolve o nome interno
+      # do serviço (sem .onrender.com), que não serve para CORS.
       - key: CORS_ORIGENS
-        fromService:
-          type: web
-          name: radar-estagios
-          property: host
+        value: https://radar-estagios.onrender.com
 
   # Painel (React + Vite, site estático)
   - type: web
@@ -37,18 +36,16 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
+      # Endereço público da API (o navegador de quem usa o site chama esse endereço).
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: radar-estagios-api
-          property: host
+        value: https://radar-estagios-api.onrender.com
       # Opcional: e-mail de contato exibido no aviso de privacidade.
       - key: VITE_CONTATO_PRIVACIDADE
         sync: false
     headers:
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://radar-estagios-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
