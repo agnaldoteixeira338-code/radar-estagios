@@ -2,7 +2,9 @@
 
 Sistema que coleta vagas de estágio automaticamente e calcula, para cada pessoa cadastrada, a compatibilidade de cada vaga com o perfil dela (o que sabe, formatura, inglês e modalidade preferida), mostrando o motivo de cada nota.
 
-> 🚧 Em desenvolvimento
+**🔗 No ar:** https://radar-estagios.onrender.com
+
+> Hospedado no plano gratuito do Render: depois de um tempo sem uso, o primeiro acesso pode levar até ~50 segundos enquanto a API "acorda".
 
 ## Estrutura
 
@@ -22,7 +24,7 @@ Copie `api/.env.example` para `api/.env` e preencha `DATABASE_URL` com a string 
 - Senhas guardadas só como hash bcrypt (custo 12); nunca aparecem nas respostas.
 - Login devolve um token JWT (HS256, validade de 7 dias); tokens adulterados, vencidos ou sem assinatura são recusados.
 - Mesma resposta e tempo parecido para "senha errada" e "e-mail não cadastrado", para não revelar quem tem conta.
-- Limite de 10 tentativas de login/cadastro (e de senha na exclusão de conta) por IP a cada 15 minutos, e de 600 requisições gerais.
+- Limite de 10 tentativas de login/cadastro (e de senha na exclusão de conta) por IP a cada 15 minutos, e de 600 requisições gerais por IP a cada 15 minutos.
 - A API não liga sem um `JWT_SECRET` forte configurado.
 - Cada requisição autenticada confere se a conta ainda existe: o token de uma conta excluída para de funcionar na hora.
 - Cabeçalhos de segurança HTTP (helmet), CORS fechado por padrão (liberado só para as origens em `CORS_ORIGENS`), corpo limitado a 100 KB e erros sem detalhes internos.
@@ -108,6 +110,14 @@ pytest                             # testes automatizados
 
 > O coletor usa o endereço interno que o site portal.gupy.io usa para listar vagas. Não é uma API oficial documentada e pode mudar. As requisições têm pausa entre si para não sobrecarregar o servidor.
 
+## Publicação e automação
+
+- **Render** (`render.yaml`): API como web service e painel como site estático, com cabeçalhos de segurança (CSP, `X-Frame-Options`, `nosniff`).
+- **Neon**: PostgreSQL gerenciado, conexão com `sslmode=verify-full`.
+- **GitHub Actions**:
+  - `ci.yml`: a cada envio, roda checagem de tipos, lint, testes e build da API, do painel e do coletor.
+  - `coleta-diaria.yml`: todo dia às 6h (horário de Brasília) roda o coletor e atualiza as vagas no banco.
+
 ## Tecnologias
 
-Node.js · TypeScript · Express · JWT · bcrypt · Jest · Supertest · PostgreSQL (Neon) · Python · pytest · React · Vite · Vitest · Testing Library
+Node.js · TypeScript · Express · JWT · bcrypt · Jest · Supertest · PostgreSQL (Neon) · Python · pytest · React · Vite · Vitest · Testing Library · GitHub Actions · Render
